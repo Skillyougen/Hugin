@@ -16,7 +16,10 @@ export default function WelcomeHero({ night }) {
       </p>
       <Link
         to="/donnees"
-        className="mt-5 rounded-full bg-ocean-600 px-5 py-2.5 text-sm font-semibold text-white no-underline hover:text-white"
+        // Couleur en inline : la règle globale `a { color }` (index.css, hors couche
+        // Tailwind) l'emporterait sur `text-white` et rendrait le texte invisible.
+        style={{ color: '#fff' }}
+        className="mt-5 rounded-full bg-ocean-600 px-5 py-2.5 text-sm font-semibold no-underline hover:bg-ocean-800"
       >
         Importer mes constantes
       </Link>
