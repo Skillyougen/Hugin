@@ -8,20 +8,17 @@ export default function HistoryItem({ entry }) {
   const category = RECOMMENDATION_CATEGORIES[entry.category]
 
   return (
-    <Card className="flex items-start gap-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-brand-soft text-ocean-700">
+    <Card className="flex items-start gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tile text-ocean-700 dark:text-ocean-300">
         <Icon name={category.icon} size={18} />
       </span>
-
-      <div className="flex flex-1 flex-col gap-1.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
-            {category.label} · {formatDateTime(entry.date)}
-          </p>
-          <StatusBadge level={entry.wellbeing.level} label={`Score ${entry.wellbeing.score}`} />
-        </div>
-        <h3 className="text-sm font-semibold text-text-primary">{entry.title}</h3>
-        <p className="text-sm leading-relaxed text-text-secondary">{entry.text}</p>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="text-xs font-medium uppercase tracking-wide text-text-muted">
+          {category.label} · {formatDateTime(entry.date)}
+        </span>
+        <StatusBadge level={entry.wellbeing.level} label={`Score ${entry.wellbeing.score}`} />
+        <span className="text-sm font-semibold text-text-primary">{entry.title}</span>
+        <p className="m-0 text-sm leading-5 text-text-secondary">{entry.text}</p>
       </div>
     </Card>
   )

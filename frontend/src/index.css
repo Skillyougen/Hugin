@@ -1,17 +1,14 @@
 @import "tailwindcss";
 
-/*
- * Huginn — design tokens
- * Palette bleu/vert. Thème clair, épuré. Le dégradé animé (.chat-bg) est
- * réservé à la page Accueil/Chat ; ailleurs les dégradés bleu/vert ne
- * servent qu'en accents statiques (boutons, anneaux de score, graphiques).
- * Aucune police web : pile système uniquement (contrainte "hors ligne").
- */
-@theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+/* Quart de nuit : la classe .dark sur <html> bascule les surfaces. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  /* Bleu ("ocean") */
+/*
+ * Huginn — tokens. Palette bleu (ocean) / vert (mint), thème clair.
+ * Les surfaces et textes passent par des variables pour que le quart de
+ * nuit s'applique à toutes les pages sans dupliquer les classes.
+ */
+@theme inline {
   --color-ocean-50: #eff6ff;
   --color-ocean-100: #dbeafe;
   --color-ocean-200: #bfdbfe;
@@ -23,7 +20,6 @@
   --color-ocean-800: #1e40af;
   --color-ocean-900: #1e3a8a;
 
-  /* Vert ("mint") */
   --color-mint-50: #ecfdf5;
   --color-mint-100: #d1fae5;
   --color-mint-200: #a7f3d0;
@@ -35,16 +31,15 @@
   --color-mint-800: #065f46;
   --color-mint-900: #064e3b;
 
-  /* Neutres / surfaces (thème clair) */
-  --color-surface: #f5f8fb;
-  --color-surface-card: #ffffff;
-  --color-surface-sunken: #eef2f7;
-  --color-surface-border: #e3e9f0;
-  --color-text-primary: #101826;
-  --color-text-secondary: #56657a;
-  --color-text-muted: #8b9aad;
+  --color-surface: var(--hg-surface);
+  --color-surface-card: var(--hg-card);
+  --color-surface-sunken: var(--hg-sunken);
+  --color-surface-border: var(--hg-border);
+  --color-text-primary: var(--hg-text);
+  --color-text-secondary: var(--hg-text-2);
+  --color-text-muted: var(--hg-muted);
+  --color-tile: var(--hg-tile);
 
-  /* Sémantique état global (vert / orange / rouge — indépendant du thème) */
   --color-status-good: #22c55e;
   --color-status-good-soft: #dcfce7;
   --color-status-warning: #f59e0b;
@@ -52,98 +47,47 @@
   --color-status-critical: #ef4444;
   --color-status-critical-soft: #fee2e2;
 
-  --shadow-card: 0 1px 2px rgba(16, 24, 38, 0.04), 0 8px 24px -12px rgba(16, 24, 38, 0.12);
-  --shadow-nav: 0 -1px 0 rgba(16, 24, 38, 0.06), 0 -8px 24px -12px rgba(16, 24, 38, 0.1);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-@layer base {
-  html {
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  body {
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-  }
-
-  #root {
-    height: 100dvh;
-  }
+:root {
+  --hg-surface: #f5f8fb;
+  --hg-card: #ffffff;
+  --hg-sunken: #eef2f7;
+  --hg-border: #e3e9f0;
+  --hg-text: #101826;
+  --hg-text-2: #56657a;
+  --hg-muted: #8b9aad;
+  --hg-tile: #eaf3fc;
+  --hg-tile-border: #cfe0ee;
+  color-scheme: light;
 }
 
-@layer utilities {
-  .gradient-brand {
-    background-image: linear-gradient(135deg, var(--color-ocean-500), var(--color-mint-500));
-  }
-  .gradient-brand-soft {
-    background-image: linear-gradient(135deg, var(--color-ocean-50), var(--color-mint-50));
-  }
-  .text-gradient-brand {
-    background-image: linear-gradient(135deg, var(--color-ocean-600), var(--color-mint-600));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  /*
-   * Fond animé de la page Accueil/Chat : deux "blobs" flous bleu/vert qui
-   * dérivent lentement. Discret (faible opacité) pour ne jamais gêner la
-   * lecture des bulles de conversation. Désactivé si l'utilisateur préfère
-   * moins d'animations.
-   */
-  .chat-bg {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    background-color: var(--color-surface);
-  }
-  .chat-bg::before,
-  .chat-bg::after {
-    content: '';
-    position: absolute;
-    width: min(60vmax, 720px);
-    height: min(60vmax, 720px);
-    border-radius: 9999px;
-    filter: blur(70px);
-    opacity: 0.4;
-    will-change: transform;
-  }
-  .chat-bg::before {
-    top: -18%;
-    left: -12%;
-    background: radial-gradient(circle, var(--color-ocean-300), transparent 70%);
-    animation: chat-blob-a 22s ease-in-out infinite alternate;
-  }
-  .chat-bg::after {
-    bottom: -22%;
-    right: -12%;
-    background: radial-gradient(circle, var(--color-mint-300), transparent 70%);
-    animation: chat-blob-b 26s ease-in-out infinite alternate;
-  }
+.dark {
+  --hg-surface: #0b1220;
+  --hg-card: #131c2b;
+  --hg-sunken: #1a2942;
+  --hg-border: #22304a;
+  --hg-text: #e9eff8;
+  --hg-text-2: #94a7bf;
+  --hg-muted: #6b7f99;
+  --hg-tile: #1a2942;
+  --hg-tile-border: #2b3d5c;
+  color-scheme: dark;
 }
 
-@keyframes chat-blob-a {
-  from {
-    transform: translate(0, 0) scale(1);
-  }
-  to {
-    transform: translate(8%, 10%) scale(1.15);
-  }
-}
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--hg-surface); color: var(--hg-text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--color-ocean-600); }
+a:hover { color: var(--color-ocean-800); }
+:focus-visible { outline: 2px solid var(--color-ocean-500); outline-offset: 2px; }
 
-@keyframes chat-blob-b {
-  from {
-    transform: translate(0, 0) scale(1);
-  }
-  to {
-    transform: translate(-6%, -8%) scale(1.1);
-  }
-}
+/* Fond animé du chat : deux blobs flous qui dérivent. */
+@keyframes hg-blob-a { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(12%, 10%) scale(1.15) } }
+@keyframes hg-blob-b { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-10%, -8%) scale(1.1) } }
+@keyframes hg-dot { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-4px) } 60% { transform: translateY(0) } }
+@keyframes hg-twinkle { 0%, 100% { opacity: .25 } 50% { opacity: .9 } }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-bg::before,
-  .chat-bg::after {
-    animation: none;
-  }
+  *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
 }

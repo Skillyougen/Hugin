@@ -1,26 +1,27 @@
-import Icon from '../ui/Icon'
+import FoxyAvatar from '../mascot/FoxyAvatar'
 import { formatTime } from '../../utils/format'
 
+/** message : { id, role: 'assistant'|'user', text, date, mood? } */
 export default function MessageBubble({ message }) {
   const isAssistant = message.role === 'assistant'
 
   return (
-    <div className={`flex items-end gap-2.5 ${isAssistant ? 'justify-start' : 'justify-end'}`}>
+    <div className={`flex items-end gap-2 ${isAssistant ? 'justify-start' : 'justify-end'}`}>
       {isAssistant && (
-        <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full gradient-brand text-white">
-          <Icon name="Feather" size={13} />
-        </span>
-      )}
-      <div className={`flex max-w-[80%] flex-col gap-1 sm:max-w-[65%] ${isAssistant ? 'items-start' : 'items-end'}`}>
-        <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isAssistant
-              ? 'rounded-bl-sm border border-surface-border bg-surface-card text-text-primary'
-              : 'rounded-br-sm gradient-brand text-white'
-          }`}
-        >
-          {message.text}
+        <div className="mb-5">
+          <FoxyAvatar mood={message.mood ?? 'neutral'} />
         </div>
+      )}
+      <div className={`flex max-w-[78%] flex-col gap-1 ${isAssistant ? 'items-start' : 'items-end'}`}>
+        {isAssistant ? (
+          <div className="rounded-2xl rounded-bl-sm border border-surface-border bg-surface-card px-3.5 py-2 text-sm leading-[1.38] text-text-primary">
+            {message.text}
+          </div>
+        ) : (
+          <div className="rounded-2xl rounded-br-sm bg-linear-to-br from-ocean-500 to-mint-500 px-3.5 py-2 text-sm leading-[1.38] text-white">
+            {message.text}
+          </div>
+        )}
         <span className="px-1 text-[11px] text-text-muted">{formatTime(message.date)}</span>
       </div>
     </div>
