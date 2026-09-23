@@ -1,12 +1,12 @@
 # Reste à faire
 
-État au 2026-09-23. Vérifié : 8 tests pytest (`backend/tests`) et un parcours navigateur headless (Chromium, mobile 390 px, avant retrait du mock : à rejouer) : connexion, état critique, protocole guidé, bandeau équipage, « Que faire ? », avancée des étapes, résolution automatique de l'alerte, page Données.
+État au 2026-09-23. Vérifié : 9 tests pytest (`backend/tests`) et un parcours navigateur headless (Chromium, mobile 390 px et desktop 1280 px) sur le front sans mock : connexion, formulaire d'import, état orange puis rouge, plusieurs cartes de recommandations, protocole guidé, bandeau équipage, « Que faire ? », avancée des étapes, résolution automatique de l'alerte, historique et filtre.
 
 ## Non vérifié faute d'environnement
 
 - **Docker Compose** : le CLI Docker existe mais le démon n'est pas joignable depuis WSL (intégration Docker Desktop/WSL2 non activée) ; `docker-compose.yml` et les Dockerfile n'ont jamais été lancés. Le backend a tourné en venv Python + uvicorn, le front en build Vite servi en statique.
 - **Ollama / modèle réel** : non installé ici. Seul le **mode dégradé** (`source: "regles"`) a été exercé. Le chemin `source: "ia"`, le choix 3B vs 7B et la cible < 10 s restent à tester sur le matériel du campus (`OLLAMA_MODEL` ; `OLLAMA_TIMEOUT=8` dans `docker-compose.yml`, à relever si le modèle est lent au premier appel).
-- **Téléphone / tablette réels** et navigateurs autres que Chromium ; formulaire d'import et page Historique non parcourus dans le navigateur (l'API correspondante est testée).
+- **Téléphone / tablette réels** et navigateurs autres que Chromium (seul un Chromium headless a été utilisé).
 - **Hors ligne total** : polices/CDN externes du front non auditées.
 
 ## Choix assumés

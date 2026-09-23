@@ -57,6 +57,9 @@ class Recommandation(Base):
     etat_couleur = Column(String, nullable=False)  # vert, orange, rouge
     source = Column(String, nullable=False)  # "ia" ou "regles"
     timestamp = Column(DateTime, default=datetime.utcnow)
+    # Mesure à l'origine de la carte : /etat n'affiche que les cartes du dernier
+    # import. Nul pour les lignes créées avant l'ajout de cette colonne.
+    mesure_id = Column(Integer, ForeignKey("mesures.id"), nullable=True)
 
     colon = relationship("Colon", back_populates="recommandations")
 

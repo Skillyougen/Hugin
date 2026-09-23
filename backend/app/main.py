@@ -20,6 +20,18 @@ from auth import (
 
 Base.metadata.create_all(bind=engine)
 
+
+def _migrer_colonnes() -> None:
+    # create_all ne modifie pas une table existante : on ajoute à la main la
+    # colonne apparue après la première version pour ne pas casser une base déjà créée.
+    with engine.begin() as conn:
+        colonnes = {r[1] for r in conn.exec_driver_sql("PRAGMA table_info(recommandations)")}
+        if "mesure_id" not in colonnes:
+            conn.exec_driver_sql("ALTER TABLE recommandations ADD COLUMN mesure_id INTEGER REFERENCES mesures(id)")
+
+
+_migrer_colonnes()
+
 app = FastAPI(title="Huginn API")
 
 # CORS restreint aux origines du front (Docker : nginx sur :80 ; dev : Vite).
@@ -82,6 +94,7 @@ def recevoir_mesure(
     """
     db_mesure = models.Mesure(colon_id=colon.id, **mesure.model_dump())
     db.add(db_mesure)
+    db.flush()  # id de la mesure, pour rattacher les recommandations
 
     couleur, _score, details = evaluer_mesure(
         mesure.frequence_cardiaque, mesure.spo2, mesure.temperature, mesure.sommeil_heures
@@ -116,6 +129,7 @@ def recevoir_mesure(
         type=resultat["type"],
         etat_couleur=couleur,
         source=resultat["source"],
+        mesure_id=db_mesure.id,
     )
     db.add(reco)
     for extra in recommandations_complementaires(
@@ -124,7 +138,7 @@ def recevoir_mesure(
     ):
         db.add(models.Recommandation(
             colon_id=colon.id, texte=extra["texte"], type=extra["type"],
-            etat_couleur=couleur, source="regles",
+            etat_couleur=couleur, source="regles", mesure_id=db_mesure.id,
         ))
     db.add(models.HistoriqueConversation(
         colon_id=colon.id,
@@ -190,14 +204,18 @@ def etat_global(colon: models.Colon = Depends(get_current_colon), db: Session = 
         db.query(models.Recommandation)
         .filter(
             models.Recommandation.colon_id == colon.id,
-            # Cartes du dernier import uniquement (créées dans la même requête).
-            models.Recommandation.timestamp >= derniere.timestamp - timedelta(seconds=10),
+            # Cartes du dernier import uniquement.
+            models.Recommandation.mesure_id == derniere.id,
         )
         .order_by(desc(models.Recommandation.timestamp), models.Recommandation.id)
         .limit(5)
         .all()
     )
-    couleur = recos[0].etat_couleur if recos else "aucune_donnee"
+    # Couleur recalculée depuis la dernière mesure (source de vérité), pas
+    # depuis les cartes : robuste aux bases créées avant `mesure_id`.
+    couleur, _, _ = evaluer_mesure(
+        derniere.frequence_cardiaque, derniere.spo2, derniere.temperature, derniere.sommeil_heures
+    )
     score = {"aucune_donnee": -1, "vert": 0, "orange": 1, "rouge": 2}.get(couleur, -1)
 
     alerte = (
