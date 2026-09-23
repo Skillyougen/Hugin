@@ -5,7 +5,7 @@
 ## Non vérifié faute d'environnement
 
 - **Docker Compose** : le CLI Docker existe mais le démon n'est pas joignable depuis WSL (intégration Docker Desktop/WSL2 non activée) ; `docker-compose.yml` et les Dockerfile n'ont jamais été lancés. Le backend a tourné en venv Python + uvicorn, le front en build Vite servi en statique.
-- **Ollama / modèle réel** : non installé ici. Seul le **mode dégradé** (`source: "regles"`) a été exercé. Le chemin `source: "ia"`, le choix 3B vs 7B et la cible < 10 s restent à tester sur le matériel du campus (`OLLAMA_MODEL` ; `OLLAMA_TIMEOUT=8` dans `docker-compose.yml`, à relever si le modèle est lent au premier appel).
+- **Ollama / modèle réel** : sur la VM de test (CPU faible, Docker Desktop), `llama3.2:3b` s'installe et répond, mais très lentement (chargement 176 s, 1,6 token/s), donc au-delà des 30 s d'`OLLAMA_TIMEOUT` : l'application bascule alors en mode dégradé (« moteur de secours »). Choix assumé : on garde le 3B, prévu pour le matériel du campus. À valider là-bas : le temps de réponse (cible < 10 s, sinon essayer `llama3.2:1b` ou donner plus de CPU/RAM à Docker) et la qualité des textes. Le préchauffage au démarrage (`OLLAMA_WARMUP`) évite de payer le chargement au premier import ; l'attendre quelques minutes après `docker compose up` avant la démo.
 - **Téléphone / tablette réels** et navigateurs autres que Chromium (seul un Chromium headless a été utilisé).
 - **Hors ligne total** : polices/CDN externes du front non auditées.
 
