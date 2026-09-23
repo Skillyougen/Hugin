@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import ScenarioSwitcher from '../components/dev/ScenarioSwitcher'
 import WellbeingCard from '../components/status/WellbeingCard'
-import AlertBanner from '../components/status/AlertBanner'
 import RecommendationsGrid from '../components/status/RecommendationsGrid'
 import VitalMiniCard from '../components/vitals/VitalMiniCard'
 import VitalsChart from '../components/vitals/VitalsChart'
@@ -24,7 +23,7 @@ export default function VitalData() {
       <div className="flex flex-col gap-5 pb-4">
         <ScenarioSwitcher />
 
-        {wellbeing.level === 'critical' && <AlertBanner />}
+        {wellbeing.level === 'critical'}
 
         <WellbeingCard wellbeing={wellbeing} />
 
