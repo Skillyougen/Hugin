@@ -16,21 +16,15 @@ export default function VitalDataPage() {
   const { token, colon } = useAuth()
   const [etat, setEtat] = useState(null)
   const [mesures, setMesures] = useState([])
-  const [recommandations, setRecommandations] = useState([])
   const [range, setRange] = useState('24h')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const refresh = useCallback(
     async (r = range) => {
-      const [etatRes, mesuresRes, recosRes] = await Promise.all([
-        api.getEtat(token),
-        api.getMesures(token, r),
-        api.getRecommandations(token),
-      ])
+      const [etatRes, mesuresRes] = await Promise.all([api.getEtat(token), api.getMesures(token, r)])
       setEtat(etatRes)
       setMesures(mesuresRes)
-      setRecommandations(recosRes)
     },
     [token, range],
   )
@@ -114,10 +108,11 @@ export default function VitalDataPage() {
               <VitalsChart data={chartData} range={range} onRangeChange={handleRangeChange} />
             </section>
 
-            {recommandations.length > 0 && (
+            {etat.recommandations.length > 0 && (
               <section className="flex flex-col gap-3">
                 <h2 className="m-0 text-sm font-semibold text-text-primary">Recommandations</h2>
-                {recommandations.slice(0, 5).map((r) => (
+                {/* Cartes du dernier import uniquement (l'historique complet est sur la page Historique). */}
+                {etat.recommandations.map((r) => (
                   <RecommendationCard key={r.id} recommendation={adaptRecommandation(r)} />
                 ))}
               </section>

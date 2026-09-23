@@ -127,6 +127,9 @@ def test_range_invalide_et_garde_fou_ia():
     coupe = "Ta SpO2 est à 92.5%. Respire lentement. Tu peux aussi boire de l'eau et te reposer un p"
     assert terminer_proprement(coupe) == "Ta SpO2 est à 92.5%. Respire lentement."
     assert terminer_proprement("phrase sans fin") == ""
+    from ia import _deviner_type
+    assert _deviner_type("Repose-toi beaucoup ce soir.") == "repos"
+    assert _deviner_type("Bois de l'eau régulièrement.") == "hydratation"
 
 
 def test_etat_ne_montre_que_les_cartes_du_dernier_import():

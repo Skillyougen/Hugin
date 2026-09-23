@@ -190,7 +190,8 @@ def _deviner_type(texte: str) -> str:
     texte_lower = texte.lower()
     if "respir" in texte_lower:
         return "respiration"
-    if "hydrat" in texte_lower or "eau" in texte_lower:
+    # « eau » en mot entier : sinon « beaucoup », « peau »… classent la carte en hydratation.
+    if "hydrat" in texte_lower or re.search(r"\beau\b", texte_lower):
         return "hydratation"
     if "repos" in texte_lower or "dorm" in texte_lower or "sommeil" in texte_lower:
         return "repos"
