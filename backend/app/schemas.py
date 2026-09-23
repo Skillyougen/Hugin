@@ -137,3 +137,23 @@ class MedicamentOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatIn(BaseModel):
+    message: str = Field(..., min_length=1, max_length=500)
+
+
+class MessageChatOut(BaseModel):
+    id: int
+    role: str
+    texte: str
+    source: str | None
+    timestamp: UtcDatetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatOut(BaseModel):
+    utilisateur: MessageChatOut
+    assistant: MessageChatOut

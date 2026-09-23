@@ -2,7 +2,7 @@ import os
 import threading
 from datetime import datetime, timedelta
 from typing import Literal
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -10,7 +10,7 @@ from sqlalchemy import desc
 from database import engine, get_db, Base
 import models
 import schemas
-from ia import generer_recommandations, prechauffer_modele
+from ia import generer_recommandations, prechauffer_modele, repondre_chat
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
 from inventaire import appliquer_prescription
@@ -326,6 +326,81 @@ def protocole_de_alerte(alerte_id: int, db: Session = Depends(get_db), colon: mo
         raise HTTPException(status_code=404, detail="Aucun protocole associé à cette alerte")
     # Le colon concerné garde sa propre rédaction ; les autres voient celle de l'aidant.
     return _construire_protocole_actif(alerte, alerte.suivi, equipage=alerte.colon_id != colon.id)
+
+
+@app.get("/chat", response_model=list[schemas.MessageChatOut])
+def historique_chat(
+    limite: int = Query(50, ge=1, le=500),
+    colon: models.Colon = Depends(get_current_colon),
+    db: Session = Depends(get_db),
+):
+    """Conversation du colon connecté (`limite` derniers messages, plus anciens d'abord)."""
+    derniers = (
+        db.query(models.MessageChat)
+        .filter(models.MessageChat.colon_id == colon.id)
+        .order_by(desc(models.MessageChat.id))
+        .limit(limite)
+        .all()
+    )
+    return list(reversed(derniers))
+
+
+@app.post("/chat", response_model=schemas.ChatOut)
+def envoyer_message(
+    payload: schemas.ChatIn,
+    colon: models.Colon = Depends(get_current_colon),
+    db: Session = Depends(get_db),
+):
+    """
+    Message libre à Huginn (page Assistant). Réponse de l'IA, contextualisée par
+    la dernière mesure, l'alerte en cours et les derniers échanges de CE colon ;
+    réponse de secours si l'IA est indisponible. Ne modifie jamais l'état, le
+    protocole ni le stock : ce message n'est qu'une conversation.
+    """
+    texte = payload.message.strip()
+    if not texte:
+        raise HTTPException(status_code=422, detail="Message vide")
+
+    precedents = (
+        db.query(models.MessageChat)
+        .filter(models.MessageChat.colon_id == colon.id)
+        .order_by(desc(models.MessageChat.id))
+        .limit(6)
+        .all()
+    )
+    conversation = [(msg.role, msg.texte) for msg in reversed(precedents)]
+
+    derniere = (
+        db.query(models.Mesure)
+        .filter(models.Mesure.colon_id == colon.id)
+        .order_by(desc(models.Mesure.timestamp))
+        .first()
+    )
+    mesure = None
+    couleur = "aucune_donnee"
+    if derniere:
+        mesure = {
+            "frequence_cardiaque": derniere.frequence_cardiaque, "spo2": derniere.spo2,
+            "temperature": derniere.temperature, "sommeil_heures": derniere.sommeil_heures,
+        }
+        couleur, _, _ = evaluer_mesure(*mesure.values())
+    alerte = (
+        db.query(models.Alerte)
+        .filter(models.Alerte.colon_id == colon.id, models.Alerte.resolue == False)  # noqa: E712
+        .order_by(desc(models.Alerte.timestamp))
+        .first()
+    )
+    protocole_titre = PROTOCOLES[alerte.suivi.protocole_id]["titre"] if alerte and alerte.suivi else None
+
+    message_user = models.MessageChat(colon_id=colon.id, role="user", texte=texte)
+    db.add(message_user)
+    reponse = repondre_chat(texte, conversation, mesure, couleur, protocole_titre)
+    message_ia = models.MessageChat(colon_id=colon.id, role="assistant", texte=reponse["texte"], source=reponse["source"])
+    db.add(message_ia)
+    db.commit()
+    db.refresh(message_user)
+    db.refresh(message_ia)
+    return schemas.ChatOut(utilisateur=message_user, assistant=message_ia)
 
 
 @app.get("/medicaments", response_model=list[schemas.MedicamentOut])

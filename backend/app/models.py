@@ -132,3 +132,20 @@ class SuiviProtocole(Base):
     stock_restant = Column(Integer, nullable=True)
 
     alerte = relationship("Alerte", back_populates="suivi")
+
+
+class MessageChat(Base):
+    """
+    Conversation libre d'un colon avec Huginn (page Assistant). Propre à chaque
+    colon ; le contenu n'entre jamais dans le calcul de l'état ni le choix du
+    protocole (comme `symptomes`, il ne sert qu'à la formulation).
+    """
+
+    __tablename__ = "messages_chat"
+
+    id = Column(Integer, primary_key=True, index=True)
+    colon_id = Column(Integer, ForeignKey("colons.id"), nullable=False, index=True)
+    role = Column(String, nullable=False)  # "user" ou "assistant"
+    texte = Column(String, nullable=False)
+    source = Column(String, nullable=True)  # assistant : "ia" ou "regles" (réponse de secours)
+    timestamp = Column(DateTime, default=datetime.utcnow)

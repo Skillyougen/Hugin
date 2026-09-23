@@ -48,3 +48,8 @@ export function adaptRecommandation(reco) {
     wellbeing: wellbeingFromCouleur(reco.etat_couleur) ?? { score: 0, level: 'good' },
   }
 }
+
+/** Message de chat de l'API → forme attendue par MessageBubble. */
+export function messageFromApi(m) {
+  return { id: `m-${m.id}`, role: m.role, text: m.texte, date: m.timestamp, source: m.source, mood: 'neutral' }
+}

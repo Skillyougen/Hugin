@@ -5,6 +5,7 @@ import TopNav from './components/nav/TopNav'
 import CrewAlerts from './components/status/CrewAlerts'
 import IntroSplash from './components/mascot/IntroSplash'
 import HomePage from './pages/Home'
+import AssistantPage from './pages/Assistant'
 import VitalDataPage from './pages/VitalData'
 import HistoryPage from './pages/History'
 import LoginPage from './pages/Login'
@@ -29,6 +30,7 @@ function AuthenticatedApp() {
         <main className="min-h-0 flex-1">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
             <Route path="/donnees" element={<VitalDataPage />} />
             <Route path="/historique" element={<HistoryPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

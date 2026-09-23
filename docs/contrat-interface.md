@@ -21,18 +21,21 @@ autre (cahier des charges §5).
 
 ## Périmètre du front
 
-L'application compte 3 pages, toutes branchées sur cette API (aucune donnée
+L'application compte 4 pages, toutes branchées sur cette API (aucune donnée
 simulée côté front) :
 
 - **Accueil** : `GET /etat` (état global, dernières constantes,
   recommandations, protocole guidé actif) et `POST /protocole/etape-suivante` ;
   le bandeau des alertes équipage utilise `GET /alertes` et
   `GET /alertes/{id}/protocole`.
+- **Assistant** : conversation libre avec l'IA locale, `GET /chat` et `POST /chat`.
 - **Données** : `POST /mesures`, `GET /mesures`, `GET /etat`.
-- **Historique** : `GET /recommandations`.
+- **Historique** : onglet *Conversations* (`GET /chat?limite=500`) et onglet
+  *Recommandations* (`GET /recommandations`).
 
-Le chat libre est hors périmètre du prototype (cahier des charges §2) : il
-n'existe ni page de chat ni endpoint dédié.
+Le chat libre dépasse le périmètre du cahier des charges (§2 : « évolution
+prévue pour une V1 ») : il a été ajouté à la demande, avec les mêmes
+garde-fous que les recommandations (voir section Assistant).
 
 ## Authentification
 
@@ -180,7 +183,7 @@ import de mesure + recommandation générée), plus récents d'abord.
     "reponse_ia": "...", "timestamp": "2026-09-23T10:00:00" } ]
 ```
 
-Ce n'est **pas** un endpoint de chat libre : ces entrées
+Ce n'est **pas** le chat (voir `/chat`) : ces entrées
 sont créées automatiquement par `POST /mesures` (une par mesure importée),
 pas par un envoi de message libre. Elles servent aussi de contexte propre
 à chaque colon, réinjecté dans le prompt IA lors de sa prochaine mesure
@@ -194,3 +197,33 @@ restent basés uniquement sur les seuils (même garde-fou que `symptomes`).
 
 `[ { "id": 1, "nom": "Bronchodilatateur inhalé", "quantite": 499 }, ... ]`
 — utile pour afficher/vérifier le compteur de stock en démo.
+
+## Assistant (chat libre)
+
+### `GET /chat?limite=50`
+
+Conversation du colon connecté, du plus ancien au plus récent (`limite` de 1 à
+500). Chaque colon n'a accès qu'à la sienne.
+
+```json
+[ { "id": 12, "role": "user", "texte": "Je me sens seul", "source": null, "timestamp": "2026-09-24T00:36:00Z" },
+  { "id": 13, "role": "assistant", "texte": "…", "source": "ia", "timestamp": "2026-09-24T00:36:05Z" } ]
+```
+
+`source` (messages `assistant`) : `"ia"`, ou `"regles"` = réponse de secours
+fixe quand l'IA est indisponible ou écartée.
+
+### `POST /chat`
+
+```json
+// Requête (1 à 500 caractères, sinon 422)
+{ "message": "Je me sens seul ce soir" }
+// Réponse 200
+{ "utilisateur": { "id": 12, "role": "user", … }, "assistant": { "id": 13, "role": "assistant", "source": "ia", … } }
+```
+
+Le prompt de l'IA reçoit les dernières constantes du colon, l'éventuelle alerte
+en cours et ses 6 derniers échanges. Garde-fous : tutoiement, ton bienveillant,
+aucun diagnostic, aucun médicament ni dose (filtre de sortie), pas de
+minimisation, renvoi au protocole guidé en cas d'alerte. Le message **ne
+modifie jamais** l'état, le protocole, l'alerte ni le stock.

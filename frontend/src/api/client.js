@@ -84,3 +84,11 @@ export function avancerProtocole(token) {
 export function getMedicaments(token) {
   return request('/medicaments', { token })
 }
+
+export function getChat(token, limite = 50) {
+  return request(`/chat?limite=${encodeURIComponent(limite)}`, { token })
+}
+
+export function postChat(token, message) {
+  return request('/chat', { method: 'POST', token, body: { message } })
+}
