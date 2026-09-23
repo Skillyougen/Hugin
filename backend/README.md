@@ -6,8 +6,7 @@ FastAPI + SQLite, appel à Ollama en local avec fallback automatique
 ## Démarrage avec Docker (recommandé)
 
 ```bash
-# Depuis backend/ (le docker-compose.yml y vit désormais)
-cd backend
+# Depuis la racine du dépôt (le docker-compose.yml y vit)
 docker compose up -d --build
 
 # Télécharger le modèle dans le conteneur Ollama (une seule fois)

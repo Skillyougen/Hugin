@@ -1,5 +1,5 @@
 # Build de l'image du frontend (cahier des charges §6 : webapp React).
-# Ce fichier vit hors de frontend/ (voir backend/docker-compose.yml,
+# Ce fichier vit hors de frontend/ (voir docker-compose.yml à la racine,
 # service "frontend") pour ne rien ajouter dans ce dossier.
 # Contexte de build attendu : frontend/
 
