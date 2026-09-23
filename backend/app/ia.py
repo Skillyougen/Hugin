@@ -1,8 +1,11 @@
+import logging
 import os
 import re
 import time
 import requests
 from seuils import evaluer_mesure, recommandations_regles
+
+logger = logging.getLogger("huginn.ia")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
@@ -42,12 +45,12 @@ répéter, jamais pour poser un diagnostic ni changer la conduite à tenir.
 # médicament. Si sa réponse en contient (ou dérive du format), on ignore le
 # texte du modèle et on bascule sur le moteur de règles, comme en cas de panne.
 _INTERDIT = re.compile(
-    r"\b\d+([.,]\d+)?\s?(mg|g|ml|mcg|µg|comprim|gélule|ampoule|dose|goutte)|"
+    r"\b\d+([.,]\d+)?\s?((mg|g|ml|mcg|µg)\b|comprim|gélule|ampoule|dose|goutte)|"
     r"paracétamol|ibuprofène|aspirine|propranolol|morphine|diazépam|anxiolytique|"
     r"vasopresseur|bronchodilatateur|prescri|pas grave|rien de grave",
     re.IGNORECASE,
 )
-TEXTE_MAX = 600
+TEXTE_MAX = 1200  # ~160 tokens en français peuvent dépasser 600 caractères
 
 
 def prechauffer_modele() -> None:
@@ -151,9 +154,15 @@ def generer_recommandation(
             timeout=OLLAMA_TIMEOUT,
         )
         response.raise_for_status()
-        texte = terminer_proprement(response.json().get("response", ""))
+        brut = response.json().get("response", "")
+        texte = terminer_proprement(brut)
+        if not texte:
+            raise ValueError(f"aucune phrase complète (brut : {brut[:120]!r})")
+        interdit = _INTERDIT.search(texte)
+        if interdit:
+            raise ValueError(f"filtre garde-fou sur {interdit.group(0)!r} dans : {texte[:160]!r}")
         if not reponse_acceptable(texte):
-            raise ValueError("Réponse vide ou non conforme aux garde-fous")
+            raise ValueError(f"réponse trop longue ({len(texte)} caractères)")
 
         return {
             "texte": texte,
@@ -162,8 +171,11 @@ def generer_recommandation(
             "couleur": couleur,
         }
 
-    except (requests.RequestException, ValueError, KeyError):
-        # Mode dégradé : le moteur de règles prend le relais
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        # Mode dégradé : le moteur de règles prend le relais. La raison est
+        # journalisée (docker compose logs backend) : sans ça, timeout, filtre
+        # et réponse vide se ressemblent tous côté interface.
+        logger.warning("IA écartée, mode règles : %s: %s", type(exc).__name__, exc)
         recos = recommandations_regles(fc, spo2, temp, sommeil)
         premiere = recos[0]
         return {

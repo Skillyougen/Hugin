@@ -119,6 +119,10 @@ def test_range_invalide_et_garde_fou_ia():
     assert not reponse_acceptable("Prends 2 mg de propranolol.")
     assert not reponse_acceptable("")
     assert not reponse_acceptable("Ta SpO2 est basse mais ce n'est pas grave.")
+    # Faux positifs corrigés : « 3 grandes respirations », « 5 gorgées », texte long
+    assert reponse_acceptable("Fais 3 grandes respirations et bois 5 gorgées d'eau à 37,5 degrés.")
+    assert not reponse_acceptable("Prends 10 g de sucre.") and not reponse_acceptable("Prends 2 doses.")
+    assert reponse_acceptable("Ta FC est à 115 bpm. " * 40)
     from ia import terminer_proprement
     coupe = "Ta SpO2 est à 92.5%. Respire lentement. Tu peux aussi boire de l'eau et te reposer un p"
     assert terminer_proprement(coupe) == "Ta SpO2 est à 92.5%. Respire lentement."
