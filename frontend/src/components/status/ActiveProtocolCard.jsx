@@ -7,7 +7,7 @@ import Icon from '../ui/Icon'
  * (cahier des charges §4/§8). Contenu figé côté backend (protocoles/*.json) ;
  * cette carte ne fait qu'avancer d'étape via `POST /protocole/etape-suivante`.
  */
-export default function ActiveProtocolCard({ protocole, onEtapeSuivante }) {
+export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnly = false }) {
   const [pending, setPending] = useState(false)
 
   async function handleNext() {
@@ -36,9 +36,18 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante }) {
         <p className="m-0 rounded-xl bg-surface-sunken p-3 text-xs text-text-secondary">
           {protocole.prescription.medicament} — {protocole.prescription.dosage}, {protocole.prescription.duree}
           {protocole.prescription.utilise_alternative && ' (alternative de stock)'}
+          {protocole.prescription.stock_restant != null &&
+            ` — il reste ${protocole.prescription.stock_restant} dose${protocole.prescription.stock_restant > 1 ? 's' : ''} à bord`}
         </p>
       )}
-      {protocole.termine ? (
+      {!readOnly && !protocole.termine && (
+        <p className="m-0 text-xs font-medium text-[#b91c1c]">Une alerte a été diffusée à l'équipage.</p>
+      )}
+      {readOnly ? (
+        <p className="m-0 text-xs text-text-muted">
+          {protocole.termine ? 'Protocole terminé — alerte résolue.' : 'Lecture seule : seul le colon concerné avance les étapes.'}
+        </p>
+      ) : protocole.termine ? (
         <p className="m-0 text-xs font-medium text-status-good">Protocole terminé — alerte résolue.</p>
       ) : (
         <button

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ScenarioProvider } from './context/ScenarioContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import TopNav from './components/nav/TopNav'
+import CrewAlerts from './components/status/CrewAlerts'
 import IntroSplash from './components/mascot/IntroSplash'
 import ChatPage from './pages/Chat'
 import VitalDataPage from './pages/VitalData'
@@ -25,6 +26,7 @@ function AuthenticatedApp() {
     <ScenarioProvider>
       <div className="flex h-dvh flex-col bg-surface text-text-primary">
         <TopNav />
+        <CrewAlerts />
         <main className="min-h-0 flex-1">
           <Routes>
             <Route path="/" element={<ChatPage />} />

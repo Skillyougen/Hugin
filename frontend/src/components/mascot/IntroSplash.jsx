@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Foxy from './Foxy'
-import { colon } from '../../mocks/colon'
+import { useAuth } from '../../context/AuthContext'
 
 /**
  * Écran d'ouverture — portage web de la vidéo « Foxy - Video d'ouverture ».
@@ -26,6 +26,7 @@ const STARS = Array.from({ length: 26 }, (_, i) => ({
 }))
 
 export default function IntroSplash({ onDone }) {
+  const { colon } = useAuth()
   const [mood, setMood] = useState('sleepy')
   const [day, setDay] = useState(false)
   const [word, setWord] = useState(0) // 0 caché · 1 visible · 2 sorti
@@ -104,13 +105,13 @@ export default function IntroSplash({ onDone }) {
           style={{ opacity: word === 1 ? 1 : 0, transform: `translateY(${word === 0 ? 20 : word === 2 ? -14 : 0}px)` }}
         >
           <span className="text-5xl font-bold tracking-tight text-[#101826]">Huginn</span>
-          <span className="mt-1 text-sm text-[#56657a]">Assistant santé de bord · {colon.ship}</span>
+          <span className="mt-1 text-sm text-[#56657a]">Assistant santé de bord · Yggdrasil</span>
         </div>
         <div
           className="absolute inset-x-0 flex flex-col items-center transition-all duration-700 ease-out"
           style={{ opacity: hello ? 1 : 0, transform: `translateY(${hello ? 0 : 18}px)` }}
         >
-          <span className="text-3xl font-semibold text-[#101826]">Bonjour {colon.firstName}</span>
+          <span className="text-3xl font-semibold text-[#101826]">Bonjour {colon.nom}</span>
           <span className="mt-1 text-base text-[#56657a]">Comment te sens-tu aujourd’hui ?</span>
         </div>
       </div>

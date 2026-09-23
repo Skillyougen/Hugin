@@ -3,13 +3,12 @@ import ScoreRing from '../ui/ScoreRing'
 import StatusBadge from '../ui/StatusBadge'
 import Foxy from '../mascot/Foxy'
 import { moodFromVitals } from '../mascot/useFoxyMood'
-import { colon } from '../../mocks/colon'
 
 /**
  * Carte d'état global : score + code couleur, doublé par l'humeur de Foxy
  * (signal non chromatique : good → heureux, warning → inquiet, critical → alerte).
  */
-export default function WellbeingCard({ wellbeing, name = colon.firstName }) {
+export default function WellbeingCard({ wellbeing, name }) {
   const mood = moodFromVitals({ status: wellbeing.level, score: wellbeing.score })
   return (
     <Card className="flex items-center gap-4">

@@ -6,8 +6,11 @@ import ChatInput from '../components/chat/ChatInput'
 import WelcomeHero from '../components/chat/WelcomeHero'
 import Foxy from '../components/mascot/Foxy'
 import { useFoxyMood, moodFromMessage } from '../components/mascot/useFoxyMood'
-import { useScenario } from '../context/ScenarioContext'
-import { computeWellbeing } from '../utils/wellbeing'
+import ActiveProtocolCard from '../components/status/ActiveProtocolCard'
+import RecommendationCard from '../components/status/RecommendationCard'
+import { useAuth } from '../context/AuthContext'
+import * as api from '../api/client'
+import { wellbeingFromCouleur, adaptRecommandation } from '../api/adapters'
 import { useNightShift } from '../utils/nightShift'
 import { generateReply } from '../mocks/chatAssistant'
 
@@ -46,8 +49,30 @@ export default function ChatPage() {
   const listRef = useRef(null)
   const night = useNightShift()
 
-  const { scenario } = useScenario()
-  const wellbeing = useMemo(() => computeWellbeing(scenario.vitals), [scenario])
+  // État réel du colon (GET /etat) : carte d'état, recommandations, protocole
+  // guidé actif. Le fil de discussion ci-dessous reste mocké (pas de chat
+  // libre côté backend, voir docs/contrat-interface.md).
+  const { token } = useAuth()
+  const [etat, setEtat] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      api.getEtat(token).then((e) => !cancelled && setEtat(e)).catch(() => {})
+    load()
+    const id = setInterval(load, 10000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [token])
+
+  const realWellbeing = useMemo(() => (etat ? wellbeingFromCouleur(etat.couleur) : null), [etat])
+  // Foxy a besoin d'un score même sans donnée : neutre/positif tant qu'il n'y a rien à signaler.
+  const wellbeing = realWellbeing ?? { score: 100, level: 'good', label: '' }
+  async function handleEtapeSuivante() {
+    const protocole = await api.avancerProtocole(token)
+    setEtat((prev) => ({ ...prev, protocole_actif: protocole }))
+  }
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.text
 
   const mood = useFoxyMood({
@@ -82,6 +107,17 @@ export default function ChatPage() {
       <ChatBackground />
 
       <div className="relative mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col">
+        {(etat?.protocole_actif || (realWellbeing && etat.recommandations.length > 0)) && (
+          <div className="flex max-h-[45%] shrink-0 flex-col gap-3 overflow-y-auto px-4 pt-3">
+            {etat.protocole_actif && (
+              <ActiveProtocolCard protocole={etat.protocole_actif} onEtapeSuivante={handleEtapeSuivante} />
+            )}
+            {etat.recommandations.slice(0, 3).map((r) => (
+              <RecommendationCard key={r.id} recommendation={adaptRecommandation(r)} />
+            ))}
+          </div>
+        )}
+
         {started && (
           <div className="flex items-center gap-2.5 border-b border-surface-border bg-surface-card/70 px-4 py-1.5 backdrop-blur" aria-live="polite">
             <Foxy mood={mood} size={54} decorative />
@@ -98,7 +134,7 @@ export default function ChatPage() {
             <div ref={endRef} />
           </div>
         ) : (
-          <WelcomeHero wellbeing={wellbeing} onPick={handleSend} night={night} />
+          <WelcomeHero wellbeing={realWellbeing} onPick={handleSend} night={night} />
         )}
       </div>
 
