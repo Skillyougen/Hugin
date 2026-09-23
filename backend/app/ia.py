@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 import requests
 from seuils import evaluer_mesure, recommandations_regles
 
@@ -13,12 +14,13 @@ OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
 # Le modèle reste en mémoire entre deux imports (sinon chaque appel après une
 # pause paie de nouveau le chargement, plusieurs minutes sur CPU modeste).
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "24h")
-# Réponse courte (3 phrases) : plafonner les tokens borne directement le temps de génération.
-OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "160"))
+# Un conseil = 1 à 2 phrases : plafonner les tokens borne directement le temps de génération.
+OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "80"))
 
 SYSTEM_PROMPT = """Tu es Huginn, l'assistant psychologique et physique des colons \
 à bord d'un vaisseau interstellaire. Tu t'adresses directement au colon, sur un ton \
-bienveillant, calme et concis (3 phrases maximum).
+bienveillant et calme. Chaque réponse est UN seul conseil, en 1 ou 2 phrases courtes \
+et simples (mots de tous les jours), sans liste, sans titre, sans émoji.
 
 Règles strictes :
 - Tu tutoies toujours le colon (« tu », jamais « vous »), sans salutation ni « Bonjour ».
@@ -50,7 +52,7 @@ _INTERDIT = re.compile(
     r"vasopresseur|bronchodilatateur|prescri|pas grave|rien de grave",
     re.IGNORECASE,
 )
-TEXTE_MAX = 1200  # ~160 tokens en français peuvent dépasser 600 caractères
+TEXTE_MAX = 600
 
 
 def prechauffer_modele() -> None:
@@ -86,49 +88,87 @@ def reponse_acceptable(texte: str) -> bool:
     return 0 < len(texte) <= TEXTE_MAX and not _INTERDIT.search(texte)
 
 
-def recommandations_complementaires(fc, spo2, temp, sommeil, deja_types: set[str]) -> list[dict]:
-    """
-    Cartes supplémentaires issues du moteur de règles (un type de carte par
-    catégorie : repos, hydratation, exercice, respiration…), pour que l'accueil
-    affiche plusieurs conseils par import (§4) même quand l'IA n'en rédige qu'un.
-    Contenu déterministe, cite toujours une constante.
-    """
-    return [r for r in recommandations_regles(fc, spo2, temp, sommeil) if r["type"] not in deja_types]
+# Un appel par carte : chaque thème reçoit sa propre consigne, ce qui garde
+# chaque réponse courte, simple et ciblée. Les thèmes viennent du moteur de
+# règles (seuils.py), qui décide QUELLES cartes afficher ; l'IA ne fait que les rédiger.
+THEMES = {
+    "repos": "le repos et le sommeil",
+    "respiration": "un exercice de respiration",
+    "hydratation": "boire de l'eau",
+    "exercice": "l'activité physique (un effort léger, ou éviter les efforts si la situation l'exige)",
+    "social": "garder le contact avec les autres membres de l'équipage",
+}
+# Critère du cahier des charges : chaque conseil cite au moins une constante.
+_CITE_CONSTANTE = re.compile(r"\d|cardiaque|spo|saturation|oxygène|température|sommeil|bpm", re.IGNORECASE)
 
 
-def generer_recommandation(
+def _appel_ollama(prompt: str) -> str:
+    """Un appel au modèle ; renvoie le texte brut (exceptions requests en cas d'échec)."""
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "system": SYSTEM_PROMPT,
+            "stream": False,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {"num_predict": OLLAMA_MAX_TOKENS, "temperature": 0.4},
+        },
+        timeout=OLLAMA_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json().get("response", "")
+
+
+def _conseil_ia(contexte: str, theme: str) -> str:
+    """Texte validé d'un conseil, ou ValueError/RequestException (l'appelant retombe sur les règles)."""
+    prompt = (
+        f"{contexte}\n"
+        f"Écris UN conseil sur ce thème uniquement : {THEMES[theme]}. "
+        f"1 ou 2 phrases courtes et simples, sans liste, qui citent au moins une de mes constantes."
+    )
+    brut = _appel_ollama(prompt)
+    texte = terminer_proprement(brut)
+    if not texte:
+        raise ValueError(f"aucune phrase complète (brut : {brut[:120]!r})")
+    interdit = _INTERDIT.search(texte)
+    if interdit:
+        raise ValueError(f"filtre garde-fou sur {interdit.group(0)!r} dans : {texte[:160]!r}")
+    if len(texte) > TEXTE_MAX:
+        raise ValueError(f"réponse trop longue ({len(texte)} caractères)")
+    if not _CITE_CONSTANTE.search(texte):
+        raise ValueError(f"aucune constante citée dans : {texte[:160]!r}")
+    return texte
+
+
+def generer_recommandations(
     fc: float,
     spo2: float,
     temp: float,
     sommeil: float,
     symptomes: str | None = None,
     historique: list[str] | None = None,
-) -> dict:
+) -> list[dict]:
     """
-    Tente d'utiliser Ollama. Si erreur ou timeout, bascule sur le moteur de
-    règles (mode dégradé) — exigence non fonctionnelle du cahier des charges.
-    Retourne toujours: {"texte": str, "type": str, "source": "ia"|"regles"}
+    Une carte par thème retenu par le moteur de règles ; chaque carte est
+    rédigée par l'IA (appels en parallèle). Si l'appel d'une carte échoue
+    (délai, filtre, modèle absent), CETTE carte retombe sur le texte fixe du
+    moteur de règles (mode dégradé, exigence du cahier des charges) : les
+    autres restent celles de l'IA.
+    Retourne [{"texte", "type", "source": "ia"|"regles"}, ...].
 
-    `symptomes` (texte libre optionnel du colon) n'est qu'un contexte pour
-    la formulation de la recommandation IA : il n'entre jamais dans le
-    calcul de `couleur` ni dans la sélection du protocole (seuils.py /
-    protocoles.py), qui restent basés uniquement sur les 4 constantes.
-
-    `historique` (optionnel) : quelques échanges précédents de CE colon
-    ("message -> réponse"), du plus ancien au plus récent, pour donner à
-    l'IA un contexte propre à la personne (continuité, ton). Même garde-fou
-    que `symptomes` : contexte de formulation uniquement, jamais un signal
-    de décision.
+    `symptomes` (texte libre du colon) et `historique` (échanges précédents de
+    CE colon) ne sont qu'un contexte de formulation : jamais un signal de
+    décision (couleur et protocole viennent des seuils, jamais du texte).
     """
-    couleur, score, details = evaluer_mesure(fc, spo2, temp, sommeil)
+    couleur, _score, _details = evaluer_mesure(fc, spo2, temp, sommeil)
+    cartes_regles = recommandations_regles(fc, spo2, temp, sommeil)
 
-    prompt = ""
+    contexte = ""
     if historique:
-        prompt += "Échanges précédents avec ce colon (contexte, du plus ancien au plus récent) :\n"
-        prompt += "\n".join(f"- {ligne}" for ligne in historique)
-        prompt += "\n\n"
-
-    prompt += (
+        contexte += "Échanges précédents avec ce colon (contexte, du plus ancien au plus récent) :\n"
+        contexte += "\n".join(f"- {ligne}" for ligne in historique) + "\n\n"
+    contexte += (
         f"Constantes actuelles du colon :\n"
         f"- Fréquence cardiaque : {fc:.0f} bpm\n"
         f"- SpO2 : {spo2:.0f}%\n"
@@ -137,64 +177,16 @@ def generer_recommandation(
         f"- État global calculé : {couleur}\n"
     )
     if symptomes:
-        prompt += f"- Ce que le colon décrit ressentir : {symptomes}\n"
-    prompt += "\nDonne une recommandation courte et bienveillante."
+        contexte += f"- Ce que le colon décrit ressentir : {symptomes}\n"
 
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "system": SYSTEM_PROMPT,
-                "stream": False,
-                "keep_alive": OLLAMA_KEEP_ALIVE,
-                "options": {"num_predict": OLLAMA_MAX_TOKENS, "temperature": 0.4},
-            },
-            timeout=OLLAMA_TIMEOUT,
-        )
-        response.raise_for_status()
-        brut = response.json().get("response", "")
-        texte = terminer_proprement(brut)
-        if not texte:
-            raise ValueError(f"aucune phrase complète (brut : {brut[:120]!r})")
-        interdit = _INTERDIT.search(texte)
-        if interdit:
-            raise ValueError(f"filtre garde-fou sur {interdit.group(0)!r} dans : {texte[:160]!r}")
-        if not reponse_acceptable(texte):
-            raise ValueError(f"réponse trop longue ({len(texte)} caractères)")
+    def une_carte(regle: dict) -> dict:
+        try:
+            return {"texte": _conseil_ia(contexte, regle["type"]), "type": regle["type"], "source": "ia"}
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            # La raison est journalisée (docker compose logs backend) : sans ça,
+            # délai, filtre et réponse vide se ressemblent côté interface.
+            logger.warning("IA écartée pour la carte %r, texte de règles : %s: %s", regle["type"], type(exc).__name__, exc)
+            return {"texte": regle["texte"], "type": regle["type"], "source": "regles"}
 
-        return {
-            "texte": texte,
-            "type": _deviner_type(texte),
-            "source": "ia",
-            "couleur": couleur,
-        }
-
-    except (requests.RequestException, ValueError, KeyError) as exc:
-        # Mode dégradé : le moteur de règles prend le relais. La raison est
-        # journalisée (docker compose logs backend) : sans ça, timeout, filtre
-        # et réponse vide se ressemblent tous côté interface.
-        logger.warning("IA écartée, mode règles : %s: %s", type(exc).__name__, exc)
-        recos = recommandations_regles(fc, spo2, temp, sommeil)
-        premiere = recos[0]
-        return {
-            "texte": premiere["texte"],
-            "type": premiere["type"],
-            "source": "regles",
-            "couleur": couleur,
-        }
-
-
-def _deviner_type(texte: str) -> str:
-    texte_lower = texte.lower()
-    if "respir" in texte_lower:
-        return "respiration"
-    # « eau » en mot entier : sinon « beaucoup », « peau »… classent la carte en hydratation.
-    if "hydrat" in texte_lower or re.search(r"\beau\b", texte_lower):
-        return "hydratation"
-    if "repos" in texte_lower or "dorm" in texte_lower or "sommeil" in texte_lower:
-        return "repos"
-    if "exercic" in texte_lower or "marche" in texte_lower or "sport" in texte_lower:
-        return "exercice"
-    return "social"
+    with ThreadPoolExecutor(max_workers=len(cartes_regles)) as pool:
+        return list(pool.map(une_carte, cartes_regles))

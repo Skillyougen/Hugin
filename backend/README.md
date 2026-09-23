@@ -59,7 +59,7 @@ L'API est alors sur `http://localhost:8000`. Doc interactive auto-générée :
 - `OLLAMA_URL` (défaut `http://localhost:11434/api/generate`)
 - `OLLAMA_MODEL` (défaut `llama3.2:3b`) — à changer selon le choix retenu mardi
 - `OLLAMA_TIMEOUT` (défaut `30` secondes) — au-delà, bascule en mode dégradé
-- `OLLAMA_KEEP_ALIVE` (défaut `24h`) et `OLLAMA_MAX_TOKENS` (défaut `160`, texte coupé à la dernière phrase complète) — modèle gardé en mémoire, réponse plafonnée
+- `OLLAMA_KEEP_ALIVE` (défaut `24h`) et `OLLAMA_MAX_TOKENS` (défaut `80` par carte, texte coupé à la dernière phrase complète) — modèle gardé en mémoire, réponse plafonnée
 - `OLLAMA_WARMUP` (défaut `1`) — charge le modèle au démarrage du backend
 
 ## Tester rapidement sans le simulateur

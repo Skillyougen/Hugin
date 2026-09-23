@@ -72,7 +72,7 @@ constantes, recommandations (plusieurs cartes, celles du dernier import : repos,
                         "symptomes": "un peu essoufflé depuis ce matin",
                         "timestamp": "2026-09-23T10:00:00" },
   "recommandations": [ { "id": 5, "texte": "...", "type": "respiration",
-                          "etat_couleur": "rouge", "source": "ia",   // "ia" | "regles" (mode dégradé) | "complement"
+                          "etat_couleur": "rouge", "source": "ia",   // "ia" | "regles" (repli sur le texte fixe de cette carte)
                           "timestamp": "..." } ],
   "protocole_actif": {
     "alerte_id": 3,
@@ -184,7 +184,7 @@ Ce n'est **pas** un endpoint de chat libre : ces entrées
 sont créées automatiquement par `POST /mesures` (une par mesure importée),
 pas par un envoi de message libre. Elles servent aussi de contexte propre
 à chaque colon, réinjecté dans le prompt IA lors de sa prochaine mesure
-(`ia.py::generer_recommandation`, paramètre `historique`) pour des réponses
+(`ia.py::generer_recommandations`, paramètre `historique`) pour des réponses
 plus personnalisées — jamais pour changer la couleur ou le protocole, qui
 restent basés uniquement sur les seuils (même garde-fou que `symptomes`).
 

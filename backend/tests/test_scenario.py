@@ -122,14 +122,12 @@ def test_range_invalide_et_garde_fou_ia():
     # Faux positifs corrigés : « 3 grandes respirations », « 5 gorgées », texte long
     assert reponse_acceptable("Fais 3 grandes respirations et bois 5 gorgées d'eau à 37,5 degrés.")
     assert not reponse_acceptable("Prends 10 g de sucre.") and not reponse_acceptable("Prends 2 doses.")
-    assert reponse_acceptable("Ta FC est à 115 bpm. " * 40)
+    assert reponse_acceptable("Ta FC est à 115 bpm. " * 20)  # ~420 caractères : un conseil court
+    assert not reponse_acceptable("Ta FC est à 115 bpm. " * 40)  # trop long pour une carte
     from ia import terminer_proprement
     coupe = "Ta SpO2 est à 92.5%. Respire lentement. Tu peux aussi boire de l'eau et te reposer un p"
     assert terminer_proprement(coupe) == "Ta SpO2 est à 92.5%. Respire lentement."
     assert terminer_proprement("phrase sans fin") == ""
-    from ia import _deviner_type
-    assert _deviner_type("Repose-toi beaucoup ce soir.") == "repos"
-    assert _deviner_type("Bois de l'eau régulièrement.") == "hydratation"
 
 
 def test_etat_ne_montre_que_les_cartes_du_dernier_import():
@@ -157,12 +155,46 @@ def test_vue_equipage_redigee_pour_l_aidant():
     assert client.get(f"/alertes/{alerte_id}/protocole", headers=erik).json()["vue"] == "colon"
 
 
-def test_cartes_complementaires_quand_l_ia_repond(monkeypatch):
-    import main as m
-    monkeypatch.setattr(m, "generer_recommandation", lambda **kw: {
-        "texte": "Ta FC est à 115 bpm, respire calmement.", "type": "respiration", "source": "ia"})
+def test_une_carte_par_appel_ia(monkeypatch):
+    import ia
+    prompts = []
+
+    def faux_ollama(prompt):
+        prompts.append(prompt)
+        return "Ta fréquence cardiaque est à 115 bpm, prends un moment calme."
+
+    monkeypatch.setattr(ia, "_appel_ollama", faux_ollama)
     h = auth("nyota", "nyota1234")
     client.post("/mesures", json=STRESS, headers=h)
-    sources = {r["type"]: r["source"] for r in client.get("/etat", headers=h).json()["recommandations"]}
-    assert sources["respiration"] == "ia"
-    assert all(s == "complement" for t, s in sources.items() if t != "respiration")
+    cartes = client.get("/etat", headers=h).json()["recommandations"]
+    assert {c["type"] for c in cartes} >= {"repos", "respiration", "hydratation"}
+    assert all(c["source"] == "ia" for c in cartes)
+    assert len(prompts) == len(cartes)  # un appel par carte
+    assert any("boire de l'eau" in p for p in prompts) and all("UN conseil" in p for p in prompts)
+
+
+def test_repli_carte_par_carte(monkeypatch):
+    import ia
+    import requests
+
+    def ollama_capricieux(prompt):
+        if "boire de l'eau" in prompt:
+            raise requests.Timeout("trop lent")
+        if "respiration" in prompt:
+            return "Prends 2 doses de calmant."  # refusé par le filtre anti-posologie
+        return "Ton sommeil de 5 h est court, repose-toi ce soir."
+
+    monkeypatch.setattr(ia, "_appel_ollama", ollama_capricieux)
+    h = auth("nyota", "nyota1234")
+    client.post("/mesures", json=STRESS, headers=h)
+    sources = {c["type"]: c["source"] for c in client.get("/etat", headers=h).json()["recommandations"]}
+    assert sources["hydratation"] == "regles" and sources["respiration"] == "regles"
+    assert sources["repos"] == "ia"
+
+
+def test_conseil_sans_constante_refuse(monkeypatch):
+    import pytest
+    import ia
+    monkeypatch.setattr(ia, "_appel_ollama", lambda prompt: "Prends soin de toi et souris.")
+    with pytest.raises(ValueError):
+        ia._conseil_ia("ctx", "repos")

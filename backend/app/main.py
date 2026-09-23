@@ -10,7 +10,7 @@ from sqlalchemy import desc
 from database import engine, get_db, Base
 import models
 import schemas
-from ia import generer_recommandation, recommandations_complementaires, prechauffer_modele
+from ia import generer_recommandations, prechauffer_modele
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
 from inventaire import appliquer_prescription
@@ -118,7 +118,8 @@ def recevoir_mesure(
         for h in reversed(derniers_echanges)
     ]
 
-    resultat = generer_recommandation(
+    # Une carte par thème, chacune rédigée par l'IA (repli par carte sur les règles).
+    cartes = generer_recommandations(
         fc=mesure.frequence_cardiaque,
         spo2=mesure.spo2,
         temp=mesure.temperature,
@@ -126,30 +127,15 @@ def recevoir_mesure(
         symptomes=mesure.symptomes,
         historique=historique,
     )
-
-    reco = models.Recommandation(
-        colon_id=colon.id,
-        texte=resultat["texte"],
-        type=resultat["type"],
-        etat_couleur=couleur,
-        source=resultat["source"],
-        mesure_id=db_mesure.id,
-    )
-    db.add(reco)
-    for extra in recommandations_complementaires(
-        mesure.frequence_cardiaque, mesure.spo2, mesure.temperature, mesure.sommeil_heures,
-        deja_types={resultat["type"]},
-    ):
+    for carte in cartes:
         db.add(models.Recommandation(
-            colon_id=colon.id, texte=extra["texte"], type=extra["type"],
-            # « complement » : carte de règles ajoutée à côté d'un texte de l'IA (pas une panne du modèle).
-            etat_couleur=couleur, source="complement" if resultat["source"] == "ia" else "regles",
-            mesure_id=db_mesure.id,
+            colon_id=colon.id, texte=carte["texte"], type=carte["type"],
+            etat_couleur=couleur, source=carte["source"], mesure_id=db_mesure.id,
         ))
     db.add(models.HistoriqueConversation(
         colon_id=colon.id,
         message_utilisateur=mesure.symptomes,
-        reponse_ia=resultat["texte"],
+        reponse_ia=cartes[0]["texte"],
     ))
 
     if couleur == "rouge":

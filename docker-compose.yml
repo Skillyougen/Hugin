@@ -8,6 +8,8 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=24h
+      # Une carte = un appel IA : autoriser les appels en parallèle (un import = 3-4 cartes).
+      - OLLAMA_NUM_PARALLEL=4
     restart: unless-stopped
     # Pas de "deploy: gpu" ici pour rester compatible avec les machines du campus
     # sans carte GPU dédiée. A ajouter si le matériel le permet.
