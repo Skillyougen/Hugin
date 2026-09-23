@@ -17,6 +17,12 @@ export default function RecommendationCard({ recommendation }) {
         </div>
       </div>
       <p className="m-0 text-sm leading-5 text-text-secondary">{recommendation.text}</p>
+      {recommendation.source === 'complement' && (
+        <div className="flex items-center gap-1.5 text-text-muted">
+          <Icon name="ShieldCheck" size={13} />
+          <span className="text-[11px]">Conseil complémentaire (règles de bord)</span>
+        </div>
+      )}
       {recommendation.source === 'regles' && (
         <div className="flex items-center gap-1.5 text-text-muted">
           <Icon name="ShieldCheck" size={13} />

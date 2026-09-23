@@ -72,7 +72,7 @@ constantes, recommandations (plusieurs cartes, celles du dernier import : repos,
                         "symptomes": "un peu essoufflé depuis ce matin",
                         "timestamp": "2026-09-23T10:00:00" },
   "recommandations": [ { "id": 5, "texte": "...", "type": "respiration",
-                          "etat_couleur": "rouge", "source": "ia",
+                          "etat_couleur": "rouge", "source": "ia",   // "ia" | "regles" (mode dégradé) | "complement"
                           "timestamp": "..." } ],
   "protocole_actif": {
     "alerte_id": 3,

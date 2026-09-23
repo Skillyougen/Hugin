@@ -11,13 +11,15 @@ OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
 # pause paie de nouveau le chargement, plusieurs minutes sur CPU modeste).
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "24h")
 # Réponse courte (3 phrases) : plafonner les tokens borne directement le temps de génération.
-OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "90"))
+OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "160"))
 
 SYSTEM_PROMPT = """Tu es Huginn, l'assistant psychologique et physique des colons \
 à bord d'un vaisseau interstellaire. Tu t'adresses directement au colon, sur un ton \
 bienveillant, calme et concis (3 phrases maximum).
 
 Règles strictes :
+- Tu tutoies toujours le colon (« tu », jamais « vous »), sans salutation ni « Bonjour ».
+- Tu ne minimises jamais la situation : n'écris jamais « ce n'est pas grave » ni « rien de grave ».
 - Tu ne poses AUCUN diagnostic médical.
 - Tu ne prescris AUCUN médicament.
 - Tu dois citer explicitement au moins une constante du colon (fréquence cardiaque, \
@@ -42,7 +44,7 @@ répéter, jamais pour poser un diagnostic ni changer la conduite à tenir.
 _INTERDIT = re.compile(
     r"\b\d+([.,]\d+)?\s?(mg|g|ml|mcg|µg|comprim|gélule|ampoule|dose|goutte)|"
     r"paracétamol|ibuprofène|aspirine|propranolol|morphine|diazépam|anxiolytique|"
-    r"vasopresseur|bronchodilatateur|prescri",
+    r"vasopresseur|bronchodilatateur|prescri|pas grave|rien de grave",
     re.IGNORECASE,
 )
 TEXTE_MAX = 600
@@ -64,6 +66,17 @@ def prechauffer_modele() -> None:
             return
         except requests.RequestException:
             time.sleep(5)
+
+
+def terminer_proprement(texte: str) -> str:
+    """
+    Le plafond de tokens peut couper la réponse en plein milieu d'une phrase :
+    on garde jusqu'à la dernière phrase complète. Vide si aucune phrase n'est
+    terminée (la réponse est alors écartée, mode règles).
+    """
+    texte = texte.strip()
+    fins = [m.end() for m in re.finditer(r"[.!?…](?=\s|$)", texte)]
+    return texte[: fins[-1]].strip() if fins else ""
 
 
 def reponse_acceptable(texte: str) -> bool:
@@ -138,7 +151,7 @@ def generer_recommandation(
             timeout=OLLAMA_TIMEOUT,
         )
         response.raise_for_status()
-        texte = response.json().get("response", "").strip()
+        texte = terminer_proprement(response.json().get("response", ""))
         if not reponse_acceptable(texte):
             raise ValueError("Réponse vide ou non conforme aux garde-fous")
 

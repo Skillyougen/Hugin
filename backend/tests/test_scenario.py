@@ -118,6 +118,11 @@ def test_range_invalide_et_garde_fou_ia():
     assert reponse_acceptable("Ta FC est à 115 bpm, respire calmement quelques minutes.")
     assert not reponse_acceptable("Prends 2 mg de propranolol.")
     assert not reponse_acceptable("")
+    assert not reponse_acceptable("Ta SpO2 est basse mais ce n'est pas grave.")
+    from ia import terminer_proprement
+    coupe = "Ta SpO2 est à 92.5%. Respire lentement. Tu peux aussi boire de l'eau et te reposer un p"
+    assert terminer_proprement(coupe) == "Ta SpO2 est à 92.5%. Respire lentement."
+    assert terminer_proprement("phrase sans fin") == ""
 
 
 def test_etat_ne_montre_que_les_cartes_du_dernier_import():
@@ -143,3 +148,14 @@ def test_vue_equipage_redigee_pour_l_aidant():
     assert equipe["colon_nom"] == "Erik"
     # Le colon concerné qui consulte via l'alerte garde sa propre rédaction
     assert client.get(f"/alertes/{alerte_id}/protocole", headers=erik).json()["vue"] == "colon"
+
+
+def test_cartes_complementaires_quand_l_ia_repond(monkeypatch):
+    import main as m
+    monkeypatch.setattr(m, "generer_recommandation", lambda **kw: {
+        "texte": "Ta FC est à 115 bpm, respire calmement.", "type": "respiration", "source": "ia"})
+    h = auth("nyota", "nyota1234")
+    client.post("/mesures", json=STRESS, headers=h)
+    sources = {r["type"]: r["source"] for r in client.get("/etat", headers=h).json()["recommandations"]}
+    assert sources["respiration"] == "ia"
+    assert all(s == "complement" for t, s in sources.items() if t != "respiration")

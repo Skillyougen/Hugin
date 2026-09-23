@@ -142,7 +142,9 @@ def recevoir_mesure(
     ):
         db.add(models.Recommandation(
             colon_id=colon.id, texte=extra["texte"], type=extra["type"],
-            etat_couleur=couleur, source="regles", mesure_id=db_mesure.id,
+            # « complement » : carte de règles ajoutée à côté d'un texte de l'IA (pas une panne du modèle).
+            etat_couleur=couleur, source="complement" if resultat["source"] == "ia" else "regles",
+            mesure_id=db_mesure.id,
         ))
     db.add(models.HistoriqueConversation(
         colon_id=colon.id,
