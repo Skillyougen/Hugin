@@ -108,6 +108,13 @@ def recevoir_mesure(
 
     if couleur == "rouge":
         protocole = selectionner_protocole(details)
+        # Un colon n'a qu'une alerte active à la fois : un nouvel import
+        # critique remplace la précédente (sinon elle resterait orpheline,
+        # car seul le protocole le plus récent est avancé par le colon).
+        for ancienne in db.query(models.Alerte).filter(
+            models.Alerte.colon_id == colon.id, models.Alerte.resolue == False  # noqa: E712
+        ):
+            ancienne.resolue = True
         alerte = models.Alerte(
             colon_id=colon.id,
             # Motif générique : l'équipage sait qu'il y a une urgence, jamais
