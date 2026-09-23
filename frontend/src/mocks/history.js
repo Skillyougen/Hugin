@@ -1,6 +1,5 @@
 // Historique des recommandations passées (page 3). Données figées pour la
-// démo — à remplacer par l'historique réel stocké en base une fois le
-// backend et le contrat d'interface disponibles.
+// démo — à remplacer par l'historique réel stocké en base.
 const HOURS = 60 * 60 * 1000
 const now = Date.now()
 

@@ -1,10 +1,7 @@
 /**
  * Scénarios simulés (cahier des charges §2 : "normal, stressé, crise").
- *
- * En attendant le vrai simulateur de montre (bloc "Données montre") et
- * l'API backend, ces valeurs alimentent l'UI pour la démo. Le sélecteur de
- * scénario (voir components/dev/ScenarioSwitcher.jsx) permet de rejouer le
- * script de démo sans dépendre du reste de l'équipe.
+ * En attendant le simulateur de montre et l'API backend, ces valeurs
+ * alimentent l'UI pour la démo.
  */
 export const SCENARIOS = {
   normal: {

@@ -1,8 +1,7 @@
-// Points de navigation partagés entre la sidebar (desktop) et la nav du
-// haut (mobile) — cahier des charges §4 : 3 pages. La page "Accueil" est
-// désormais le chat avec Huginn.
+// Points de navigation — cahier des charges §4 : 3 pages.
+// La page "Accueil" est le chat avec Huginn.
 export const NAV_ITEMS = [
-  { to: '/', label: 'Accueil', icon: 'MessageCircle', end: true },
-  { to: '/donnees', label: 'Données', icon: 'Activity' },
-  { to: '/historique', label: 'Historique', icon: 'History' },
+  { href: '/', label: 'Accueil', icon: 'MessageCircle' },
+  { href: '/donnees', label: 'Données', icon: 'Activity' },
+  { href: '/historique', label: 'Historique', icon: 'History' },
 ]

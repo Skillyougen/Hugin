@@ -1,10 +1,10 @@
-export default function Card({ as: Tag = 'div', className = '', children, ...props }) {
+export default function Card({ className = '', children, ...props }) {
   return (
-    <Tag
-      className={`rounded-2xl border border-surface-border bg-surface-card p-5 shadow-card ${className}`}
+    <div
+      className={`rounded-2xl border border-surface-border bg-surface-card p-4 shadow-[0_8px_16px_-12px_rgba(16,24,38,.35)] ${className}`}
       {...props}
     >
       {children}
-    </Tag>
+    </div>
   )
 }

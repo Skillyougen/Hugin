@@ -1,7 +1,6 @@
 import { SCENARIOS } from './scenarios'
 
-// Petit générateur pseudo-aléatoire déterministe (même rendu à chaque
-// ouverture de la page, pratique pour la démo et les captures d'écran).
+// Générateur pseudo-aléatoire déterministe : même rendu à chaque ouverture.
 function seededRandom(seed) {
   let s = seed
   return () => {
@@ -11,9 +10,8 @@ function seededRandom(seed) {
 }
 
 /**
- * Génère une série de points pour le graphique d'évolution (page "Données
- * corporelles"). Purement front-only : à remplacer par un appel à l'API
- * d'historique des mesures une fois le backend disponible.
+ * Série de points pour le graphique d'évolution (page Données). Front-only :
+ * à remplacer par l'API d'historique des mesures.
  */
 export function generateVitalsSeries(scenarioKey, range = '24h') {
   const scenario = SCENARIOS[scenarioKey] ?? SCENARIOS.normal
@@ -25,12 +23,7 @@ export function generateVitalsSeries(scenarioKey, range = '24h') {
     const progress = i / (points - 1)
     const drift = trendsUp ? progress * 0.12 : 0
     const jitter = (value, amplitude) => value * (1 + (random() - 0.5) * amplitude + drift)
-
-    const label =
-      range === '7j'
-        ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][i]
-        : `${String(i * 2).padStart(2, '0')}h`
-
+    const label = range === '7j' ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][i] : `${String(i * 2).padStart(2, '0')}h`
     return {
       label,
       heartRate: Math.round(jitter(scenario.vitals.heartRate, 0.08)),

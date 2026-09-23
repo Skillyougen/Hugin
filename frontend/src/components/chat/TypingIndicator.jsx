@@ -1,15 +1,14 @@
-import Icon from '../ui/Icon'
+import FoxyAvatar from '../mascot/FoxyAvatar'
 
+/** Foxy réfléchit pendant que la réponse se prépare. */
 export default function TypingIndicator() {
   return (
-    <div className="flex items-end gap-2.5">
-      <span className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full gradient-brand text-white">
-        <Icon name="Feather" size={13} />
-      </span>
-      <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border border-surface-border bg-surface-card px-4 py-3">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.3s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.15s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted" />
+    <div className="flex items-end gap-2" aria-live="polite" aria-label="Huginn écrit">
+      <FoxyAvatar mood="thinking" />
+      <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border border-surface-border bg-surface-card px-3.5 py-3">
+        {[0, 150, 300].map((d) => (
+          <span key={d} className="h-1.5 w-1.5 rounded-full bg-text-muted" style={{ animation: `hg-dot 1.2s ease-in-out ${d}ms infinite` }} />
+        ))}
       </div>
     </div>
   )
