@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8fb8c9"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="620" fill="#0c0f12"/>
+
+  <!-- Colon -->
+  <rect x="30" y="40" width="230" height="76" rx="14" fill="#12181d" stroke="#5fb0c7" stroke-width="1.5"/>
+  <text x="145" y="72" fill="#e8f2f5" font-size="16" text-anchor="middle" font-weight="600">Colon</text>
+  <text x="145" y="94" fill="#a9c4cd" font-size="12.5" text-anchor="middle">connexion (login/mdp)</text>
+  <text x="145" y="110" fill="#a9c4cd" font-size="12.5" text-anchor="middle">+ import manuel des constantes</text>
+
+  <!-- Webapp React -->
+  <rect x="30" y="160" width="230" height="60" rx="14" fill="#12181d" stroke="#5fb0c7" stroke-width="1.5"/>
+  <text x="145" y="196" fill="#e8f2f5" font-size="16" text-anchor="middle" font-weight="600">Webapp React</text>
+
+  <!-- Reste équipage -->
+  <rect x="30" y="500" width="230" height="76" rx="14" fill="#12181d" stroke="#5fb0c7" stroke-width="1.5"/>
+  <text x="145" y="532" fill="#e8f2f5" font-size="16" text-anchor="middle" font-weight="600">Reste de l'équipage</text>
+  <text x="145" y="554" fill="#a9c4cd" font-size="12.5" text-anchor="middle">reçoit les alertes</text>
+  <text x="145" y="570" fill="#a9c4cd" font-size="12.5" text-anchor="middle">(sans détail des constantes)</text>
+
+  <!-- Backend -->
+  <rect x="380" y="230" width="240" height="96" rx="16" fill="#161c22" stroke="#7fd3b0" stroke-width="2"/>
+  <text x="500" y="262" fill="#eafbf3" font-size="17" text-anchor="middle" font-weight="700">Backend</text>
+  <text x="500" y="284" fill="#bfe9d6" font-size="12.5" text-anchor="middle">Python ou Go</text>
+  <text x="500" y="302" fill="#bfe9d6" font-size="12.5" text-anchor="middle">API, auth, validation des imports</text>
+
+  <!-- Base de données -->
+  <ellipse cx="820" cy="60" rx="115" ry="18" fill="#1c1710" stroke="#e0b45a" stroke-width="1.5"/>
+  <rect x="705" y="60" width="230" height="70" fill="#1c1710" stroke="#e0b45a" stroke-width="1.5" stroke-dasharray="0" />
+  <line x1="705" y1="60" x2="705" y2="130" stroke="#e0b45a" stroke-width="1.5"/>
+  <line x1="935" y1="60" x2="935" y2="130" stroke="#e0b45a" stroke-width="1.5"/>
+  <ellipse cx="820" cy="130" rx="115" ry="18" fill="#1c1710" stroke="#e0b45a" stroke-width="1.5"/>
+  <text x="820" y="92" fill="#f6e2ab" font-size="15" text-anchor="middle" font-weight="600">Base de données</text>
+  <text x="820" y="112" fill="#dcc287" font-size="12" text-anchor="middle">comptes, imports, décisions, alertes</text>
+
+  <!-- Ollama -->
+  <rect x="705" y="180" width="230" height="80" rx="14" fill="#161822" stroke="#a68cf0" stroke-width="1.5"/>
+  <text x="820" y="210" fill="#ece5fb" font-size="16" text-anchor="middle" font-weight="600">Ollama</text>
+  <text x="820" y="230" fill="#cabdf2" font-size="12.5" text-anchor="middle">modèle local — décide</text>
+  <text x="820" y="246" fill="#cabdf2" font-size="12.5" text-anchor="middle">et sélectionne le protocole</text>
+
+  <!-- Protocoles premiers secours -->
+  <rect x="705" y="290" width="230" height="80" rx="14" fill="#161c22" stroke="#7fd3b0" stroke-width="1.5"/>
+  <text x="820" y="317" fill="#eafbf3" font-size="14.5" text-anchor="middle" font-weight="600">Protocoles 1ers secours</text>
+  <text x="820" y="336" fill="#bfe9d6" font-size="12" text-anchor="middle">fichiers statiques du dépôt</text>
+  <text x="820" y="352" fill="#bfe9d6" font-size="12" text-anchor="middle">(contenu figé, écrit à l'avance)</text>
+
+  <!-- Stock de médicaments -->
+  <rect x="705" y="400" width="230" height="80" rx="14" fill="#221417" stroke="#f0a4a4" stroke-width="1.5"/>
+  <text x="820" y="424" fill="#fbe4e4" font-size="14.5" text-anchor="middle" font-weight="600">Stock de médicaments</text>
+  <text x="820" y="442" fill="#f2c2c2" font-size="11.5" text-anchor="middle">quantités (stock 6 ans), en base</text>
+  <text x="820" y="457" fill="#f2c2c2" font-size="11.5" text-anchor="middle">décrémentées à chaque prescription</text>
+
+  <!-- Stock -> BDD (persistance) -->
+  <path d="M 960 440 C 985 440, 985 95, 940 95" fill="none" stroke="#e0b45a" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="962" y="270" fill="#e0b45a" font-size="11" writing-mode="tb">persisté en base</text>
+
+  <!-- Arrows -->
+  <line x1="260" y1="78" x2="380" y2="250" stroke="#8fb8c9" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="260" y1="190" x2="380" y2="270" stroke="#8fb8c9" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <line x1="620" y1="255" x2="700" y2="105" stroke="#e0b45a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="700" y1="115" x2="620" y2="265" stroke="#e0b45a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <line x1="620" y1="260" x2="700" y2="222" stroke="#a68cf0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="700" y1="235" x2="620" y2="273" stroke="#a68cf0" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <line x1="820" y1="260" x2="820" y2="288" stroke="#7fd3b0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="835" y="278" fill="#7fd3b0" font-size="11">choisit</text>
+
+  <line x1="805" y1="370" x2="805" y2="398" stroke="#f0a4a4" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="835" y1="398" x2="835" y2="370" stroke="#f0a4a4" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="850" y="386" fill="#f0a4a4" font-size="11">vérifie / décrémente</text>
+
+  <line x1="620" y1="310" x2="260" y2="560" stroke="#8fb8c9" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+  <text x="330" y="470" fill="#8fb8c9" font-size="11" transform="rotate(35 330 470)">alerte si critique</text>
+
+  <text x="490" y="600" fill="#5a6b72" font-size="12" text-anchor="middle">Tout tourne sur une seule machine (Docker Compose) — aucune dépendance réseau externe</text>
+</svg>
