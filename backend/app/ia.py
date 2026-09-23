@@ -19,14 +19,23 @@ SpO2, température, ou heures de sommeil) dans ta recommandation.
 respiration, ou contact avec un autre membre de l'équipage.
 - Si les constantes indiquent une situation critique, dis clairement au colon \
 de contacter le médecin de bord.
+- Le colon peut décrire ce qu'il ressent en texte libre : sers-t'en pour adapter \
+le ton de ta réponse, mais ce texte ne doit JAMAIS te faire poser un diagnostic \
+ni changer la conduite à tenir — celle-ci est déjà fixée par les seuils et les \
+protocoles figés du système, pas par toi.
 """
 
 
-def generer_recommandation(fc: float, spo2: float, temp: float, sommeil: float) -> dict:
+def generer_recommandation(fc: float, spo2: float, temp: float, sommeil: float, symptomes: str | None = None) -> dict:
     """
     Tente d'utiliser Ollama. Si erreur ou timeout, bascule sur le moteur de
     règles (mode dégradé) — exigence non fonctionnelle du cahier des charges.
     Retourne toujours: {"texte": str, "type": str, "source": "ia"|"regles"}
+
+    `symptomes` (texte libre optionnel du colon) n'est qu'un contexte pour
+    la formulation de la recommandation IA : il n'entre jamais dans le
+    calcul de `couleur` ni dans la sélection du protocole (seuils.py /
+    protocoles.py), qui restent basés uniquement sur les 4 constantes.
     """
     couleur, score, details = evaluer_mesure(fc, spo2, temp, sommeil)
 
@@ -36,9 +45,11 @@ def generer_recommandation(fc: float, spo2: float, temp: float, sommeil: float) 
         f"- SpO2 : {spo2:.0f}%\n"
         f"- Température : {temp:.1f}°C\n"
         f"- Sommeil la nuit dernière : {sommeil:.1f}h\n"
-        f"- État global calculé : {couleur}\n\n"
-        f"Donne une recommandation courte et bienveillante."
+        f"- État global calculé : {couleur}\n"
     )
+    if symptomes:
+        prompt += f"- Ce que le colon décrit ressentir : {symptomes}\n"
+    prompt += "\nDonne une recommandation courte et bienveillante."
 
     try:
         response = requests.post(

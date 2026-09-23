@@ -1,0 +1,13 @@
+{
+  "id": "epuisement",
+  "titre": "Privation de sommeil critique",
+  "declencheur": { "constante": "sommeil", "niveau_minimal": 2 },
+  "etapes": [
+    "Signale ton état à un membre de l'équipage pour qu'il allège ta charge de travail immédiate.",
+    "Va t'installer dans ta cabine et coupe les écrans et les alertes non essentielles.",
+    "Accorde-toi un temps de repos d'au moins 3 heures avant toute tâche non critique.",
+    "Bois de l'eau et évite toute prise de caféine avant ce repos.",
+    "À ton réveil, réimporte tes constantes pour vérifier ton état."
+  ],
+  "prescription": null
+}
