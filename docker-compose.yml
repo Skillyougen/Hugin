@@ -11,7 +11,9 @@ services:
     # sans carte GPU dédiée. A ajouter si le matériel le permet.
 
   backend:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile
     container_name: huginn-backend
     ports:
       - "8000:8000"
@@ -28,7 +30,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       # Dockerfile hors de frontend/ : voir docker/frontend.Dockerfile
       dockerfile: ../docker/frontend.Dockerfile
     container_name: huginn-frontend
