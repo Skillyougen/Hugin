@@ -1,4 +1,6 @@
+import os
 from datetime import datetime, timedelta
+from typing import Literal
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -7,20 +9,29 @@ from sqlalchemy import desc
 from database import engine, get_db, Base
 import models
 import schemas
-from ia import generer_recommandation
+from ia import generer_recommandation, recommandations_complementaires
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
 from inventaire import appliquer_prescription
-from auth import verifier_mot_de_passe, creer_session, get_current_colon
+from auth import (
+    verifier_mot_de_passe, creer_session, get_current_colon, hash_factice,
+    login_bloque, noter_echec, noter_succes,
+)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Huginn API")
 
-# CORS ouvert pour le front React en dev (webapp locale, pas d'accès Internet requis)
+# CORS restreint aux origines du front (Docker : nginx sur :80 ; dev : Vite).
+# Surchargeable : CORS_ORIGINS="http://hote1,http://hote2". Le jeton passe par
+# l'en-tête Authorization (pas de cookie), donc pas d'allow_credentials.
+ORIGINES = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost,http://127.0.0.1,http://localhost:5173,http://127.0.0.1:5173",
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in ORIGINES],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -36,10 +47,17 @@ def login(payload: schemas.LoginIn, db: Session = Depends(get_db)):
     """
     Comptes pré-créés uniquement (§2 : pas d'auto-inscription) — voir seed.py.
     """
+    if login_bloque(payload.identifiant):
+        raise HTTPException(status_code=429, detail="Trop de tentatives, réessaie dans une minute")
+
     colon = db.query(models.Colon).filter(models.Colon.identifiant == payload.identifiant).first()
-    if not colon or not verifier_mot_de_passe(payload.mot_de_passe, colon.mot_de_passe_hash):
+    # Toujours un calcul PBKDF2, même si le compte n'existe pas (timing constant).
+    hache = colon.mot_de_passe_hash if colon else hash_factice()
+    if not verifier_mot_de_passe(payload.mot_de_passe, hache) or not colon:
+        noter_echec(payload.identifiant)
         raise HTTPException(status_code=401, detail="Identifiant ou mot de passe incorrect")
 
+    noter_succes(payload.identifiant)
     token = creer_session(db, colon)
     return schemas.LoginOut(token=token, colon_id=colon.id, nom=colon.nom)
 
@@ -100,6 +118,14 @@ def recevoir_mesure(
         source=resultat["source"],
     )
     db.add(reco)
+    for extra in recommandations_complementaires(
+        mesure.frequence_cardiaque, mesure.spo2, mesure.temperature, mesure.sommeil_heures,
+        deja_types={resultat["type"]},
+    ):
+        db.add(models.Recommandation(
+            colon_id=colon.id, texte=extra["texte"], type=extra["type"],
+            etat_couleur=couleur, source="regles",
+        ))
     db.add(models.HistoriqueConversation(
         colon_id=colon.id,
         message_utilisateur=mesure.symptomes,
@@ -162,8 +188,12 @@ def etat_global(colon: models.Colon = Depends(get_current_colon), db: Session = 
 
     recos = (
         db.query(models.Recommandation)
-        .filter(models.Recommandation.colon_id == colon.id)
-        .order_by(desc(models.Recommandation.timestamp))
+        .filter(
+            models.Recommandation.colon_id == colon.id,
+            # Cartes du dernier import uniquement (créées dans la même requête).
+            models.Recommandation.timestamp >= derniere.timestamp - timedelta(seconds=10),
+        )
+        .order_by(desc(models.Recommandation.timestamp), models.Recommandation.id)
         .limit(5)
         .all()
     )
@@ -185,7 +215,7 @@ def etat_global(colon: models.Colon = Depends(get_current_colon), db: Session = 
 
 
 @app.get("/mesures", response_model=list[schemas.MesureOut])
-def historique_mesures(range: str = "24h", colon: models.Colon = Depends(get_current_colon), db: Session = Depends(get_db)):
+def historique_mesures(range: Literal["24h", "7j"] = "24h", colon: models.Colon = Depends(get_current_colon), db: Session = Depends(get_db)):
     delta = timedelta(hours=24) if range == "24h" else timedelta(days=7)
     depuis = datetime.utcnow() - delta
     return (

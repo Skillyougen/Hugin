@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from seuils import evaluer_mesure, recommandations_regles
 
@@ -27,6 +28,32 @@ protocoles figés du système, pas par toi.
 contexte : sers-t'en uniquement pour personnaliser le ton et éviter de te \
 répéter, jamais pour poser un diagnostic ni changer la conduite à tenir.
 """
+
+
+# Garde-fou de sortie (§5) : l'IA ne rédige jamais de posologie ni de nom de
+# médicament. Si sa réponse en contient (ou dérive du format), on ignore le
+# texte du modèle et on bascule sur le moteur de règles, comme en cas de panne.
+_INTERDIT = re.compile(
+    r"\b\d+([.,]\d+)?\s?(mg|g|ml|mcg|µg|comprim|gélule|ampoule|dose|goutte)|"
+    r"paracétamol|ibuprofène|aspirine|propranolol|morphine|diazépam|anxiolytique|"
+    r"vasopresseur|bronchodilatateur|prescri",
+    re.IGNORECASE,
+)
+TEXTE_MAX = 600
+
+
+def reponse_acceptable(texte: str) -> bool:
+    return 0 < len(texte) <= TEXTE_MAX and not _INTERDIT.search(texte)
+
+
+def recommandations_complementaires(fc, spo2, temp, sommeil, deja_types: set[str]) -> list[dict]:
+    """
+    Cartes supplémentaires issues du moteur de règles (un type de carte par
+    catégorie : repos, hydratation, exercice, respiration…), pour que l'accueil
+    affiche plusieurs conseils par import (§4) même quand l'IA n'en rédige qu'un.
+    Contenu déterministe, cite toujours une constante.
+    """
+    return [r for r in recommandations_regles(fc, spo2, temp, sommeil) if r["type"] not in deja_types]
 
 
 def generer_recommandation(
@@ -86,8 +113,8 @@ def generer_recommandation(
         )
         response.raise_for_status()
         texte = response.json().get("response", "").strip()
-        if not texte:
-            raise ValueError("Réponse vide d'Ollama")
+        if not reponse_acceptable(texte):
+            raise ValueError("Réponse vide ou non conforme aux garde-fous")
 
         return {
             "texte": texte,

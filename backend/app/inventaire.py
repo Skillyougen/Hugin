@@ -38,16 +38,21 @@ def appliquer_prescription(db: Session, prescription: dict | None) -> dict | Non
 
 
 def _consommer(db: Session, nom: str, dosage: str, duree: str, alternative: bool) -> dict | None:
-    medicament = db.query(models.Medicament).filter(models.Medicament.nom == nom).first()
-    if not medicament or medicament.quantite <= 0:
+    # UPDATE conditionnel : deux prescriptions simultanées ne peuvent pas
+    # lire la même quantité puis écrire la même valeur (§ cahier des charges :
+    # « décrément atomique »).
+    modifie = (
+        db.query(models.Medicament)
+        .filter(models.Medicament.nom == nom, models.Medicament.quantite > 0)
+        .update({models.Medicament.quantite: models.Medicament.quantite - 1}, synchronize_session=False)
+    )
+    if not modifie:
         return None
-
-    medicament.quantite -= 1
-    db.add(medicament)
+    restant = db.query(models.Medicament.quantite).filter(models.Medicament.nom == nom).scalar()
     return {
         "medicament": nom,
         "dosage": dosage,
         "duree": duree,
-        "stock_restant": medicament.quantite,
+        "stock_restant": restant,
         "utilise_alternative": alternative,
     }

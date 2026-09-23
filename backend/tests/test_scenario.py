@@ -78,3 +78,42 @@ def test_medicament_absent_alternative():
     assert r.status_code == 200
     p = client.get("/etat", headers=erik).json()["protocole_actif"]
     assert p["protocole_id"] == "hyperthermie" and p["prescription"]["utilise_alternative"] is True
+
+
+def test_plusieurs_recommandations_et_timestamps_utc():
+    nyota = auth("nyota", "nyota1234")
+    client.post("/mesures", json={"frequence_cardiaque": 115, "spo2": 97, "temperature": 36.8, "sommeil_heures": 5}, headers=nyota)
+    etat = client.get("/etat", headers=nyota).json()
+    types = {r["type"] for r in etat["recommandations"]}
+    assert {"repos", "respiration", "hydratation"} <= types
+    # Chaque conseil cite une constante (critère §8)
+    assert all(any(c in r["texte"] for c in ("bpm", "°C", "h", "%")) for r in etat["recommandations"])
+    assert etat["derniere_mesure"]["timestamp"].endswith("Z")
+
+
+def test_login_bloque_apres_echecs_repetes():
+    for _ in range(5):
+        assert client.post("/auth/login", json={"identifiant": "inconnu", "mot_de_passe": "x"}).status_code == 401
+    assert client.post("/auth/login", json={"identifiant": "inconnu", "mot_de_passe": "x"}).status_code == 429
+
+
+def test_session_expiree():
+    from datetime import datetime, timedelta
+    import models
+    from database import SessionLocal
+    headers = auth("nyota", "nyota1234")
+    db = SessionLocal()
+    for s in db.query(models.SessionAuth):
+        s.timestamp = datetime.utcnow() - timedelta(hours=13)
+    db.commit()
+    db.close()
+    assert client.get("/etat", headers=headers).status_code == 401
+
+
+def test_range_invalide_et_garde_fou_ia():
+    headers = auth("erik", "erik1234")
+    assert client.get("/mesures?range=1an", headers=headers).status_code == 422
+    from ia import reponse_acceptable
+    assert reponse_acceptable("Ta FC est à 115 bpm, respire calmement quelques minutes.")
+    assert not reponse_acceptable("Prends 2 mg de propranolol.")
+    assert not reponse_acceptable("")

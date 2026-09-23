@@ -1,5 +1,17 @@
-from datetime import datetime
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from typing import Annotated
+from pydantic import BaseModel, Field, PlainSerializer
+
+
+def _iso_utc(d: datetime) -> str:
+    # La base stocke de l'UTC naïf ; sans suffixe « Z », `new Date()` côté
+    # navigateur l'interprète en heure locale (décalage de 1-2 h à l'écran).
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+UtcDatetime = Annotated[datetime, PlainSerializer(_iso_utc, return_type=str)]
 
 
 class LoginIn(BaseModel):
@@ -40,7 +52,7 @@ class MesureIn(BaseModel):
 class MesureOut(MesureIn):
     id: int
     colon_id: int
-    timestamp: datetime
+    timestamp: UtcDatetime
 
     class Config:
         from_attributes = True
@@ -52,7 +64,7 @@ class RecommandationOut(BaseModel):
     type: str
     etat_couleur: str
     source: str
-    timestamp: datetime
+    timestamp: UtcDatetime
 
     class Config:
         from_attributes = True
@@ -62,7 +74,7 @@ class HistoriqueConversationOut(BaseModel):
     id: int
     message_utilisateur: str | None
     reponse_ia: str
-    timestamp: datetime
+    timestamp: UtcDatetime
 
     class Config:
         from_attributes = True
@@ -107,7 +119,7 @@ class AlerteOut(BaseModel):
     colon_id: int
     colon_nom: str
     motif: str
-    timestamp: datetime
+    timestamp: UtcDatetime
     resolue: bool
 
     class Config:

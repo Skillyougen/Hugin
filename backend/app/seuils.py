@@ -86,6 +86,11 @@ def recommandations_regles(fc: float, spo2: float, temp: float, sommeil: float) 
             "texte": f"Ta température est à {temp:.1f}°C, hors de ta plage habituelle. "
                      f"Pense à bien t'hydrater et surveille l'évolution.",
         })
+    if score >= 1 and not any(r["type"] == "hydratation" for r in recos):
+        recos.append({
+            "type": "hydratation",
+            "texte": f"Avec une température de {temp:.1f}°C, pense à boire de l'eau régulièrement aujourd'hui.",
+        })
     if not recos:
         recos.append({
             "type": "social",
