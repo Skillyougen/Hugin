@@ -1,11 +1,17 @@
 import os
 import re
+import time
 import requests
 from seuils import evaluer_mesure, recommandations_regles
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "8"))
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
+# Le modèle reste en mémoire entre deux imports (sinon chaque appel après une
+# pause paie de nouveau le chargement, plusieurs minutes sur CPU modeste).
+OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "24h")
+# Réponse courte (3 phrases) : plafonner les tokens borne directement le temps de génération.
+OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "90"))
 
 SYSTEM_PROMPT = """Tu es Huginn, l'assistant psychologique et physique des colons \
 à bord d'un vaisseau interstellaire. Tu t'adresses directement au colon, sur un ton \
@@ -40,6 +46,24 @@ _INTERDIT = re.compile(
     re.IGNORECASE,
 )
 TEXTE_MAX = 600
+
+
+def prechauffer_modele() -> None:
+    """
+    Charge le modèle en mémoire au démarrage du backend (appel sans prompt),
+    pour que le premier vrai import ne paie pas le chargement. Sans effet si
+    Ollama est absent : le mode dégradé prend le relais comme d'habitude.
+    """
+    for _ in range(12):  # Ollama peut démarrer après le backend
+        try:
+            requests.post(
+                OLLAMA_URL,
+                json={"model": OLLAMA_MODEL, "prompt": "", "stream": False, "keep_alive": OLLAMA_KEEP_ALIVE},
+                timeout=900,
+            ).raise_for_status()
+            return
+        except requests.RequestException:
+            time.sleep(5)
 
 
 def reponse_acceptable(texte: str) -> bool:
@@ -108,6 +132,8 @@ def generer_recommandation(
                 "prompt": prompt,
                 "system": SYSTEM_PROMPT,
                 "stream": False,
+                "keep_alive": OLLAMA_KEEP_ALIVE,
+                "options": {"num_predict": OLLAMA_MAX_TOKENS, "temperature": 0.4},
             },
             timeout=OLLAMA_TIMEOUT,
         )

@@ -7,6 +7,7 @@ import pathlib
 _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["OLLAMA_URL"] = "http://127.0.0.1:9/none"
+os.environ["OLLAMA_WARMUP"] = "0"
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "app"))
 
 from fastapi.testclient import TestClient

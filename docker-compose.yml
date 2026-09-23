@@ -6,6 +6,8 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
     restart: unless-stopped
     # Pas de "deploy: gpu" ici pour rester compatible avec les machines du campus
     # sans carte GPU dédiée. A ajouter si le matériel le permet.
@@ -20,7 +22,8 @@ services:
     environment:
       - OLLAMA_URL=http://ollama:11434/api/generate
       - OLLAMA_MODEL=llama3.2:3b
-      - OLLAMA_TIMEOUT=8
+      # 30 s : sur un CPU modeste le 3B génère ~2 tokens/s ; au-delà, mode dégradé.
+      - OLLAMA_TIMEOUT=30
       - DATABASE_URL=sqlite:////app/data/huginn.db
     volumes:
       - backend_data:/app/data

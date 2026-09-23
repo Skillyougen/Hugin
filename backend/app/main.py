@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime, timedelta
 from typing import Literal
 from fastapi import FastAPI, Depends, HTTPException
@@ -9,7 +10,7 @@ from sqlalchemy import desc
 from database import engine, get_db, Base
 import models
 import schemas
-from ia import generer_recommandation, recommandations_complementaires
+from ia import generer_recommandation, recommandations_complementaires, prechauffer_modele
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
 from inventaire import appliquer_prescription
@@ -31,6 +32,9 @@ def _migrer_colonnes() -> None:
 
 
 _migrer_colonnes()
+
+if os.getenv("OLLAMA_WARMUP", "1") == "1":
+    threading.Thread(target=prechauffer_modele, daemon=True).start()
 
 app = FastAPI(title="Huginn API")
 
