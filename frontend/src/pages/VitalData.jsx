@@ -89,7 +89,7 @@ export default function VitalDataPage() {
             {vitals && (
               <section className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="m-0 text-sm font-semibold text-text-primary">Valeurs en temps réel</h2>
+                  <h2 className="m-0 text-sm font-semibold text-text-primary">Dernières valeurs importées</h2>
                   <span className="text-xs text-text-muted">
                     Mise à jour {formatTime(etat.derniere_mesure.timestamp)}
                   </span>

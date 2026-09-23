@@ -1,15 +1,18 @@
 /**
- * Seuils des constantes vitales.
+ * Seuils d'affichage des constantes (vert / orange / rouge par carte).
  *
- * ⚠️ Valeurs indicatives pour le prototype, à valider avec le référent
- * médical. Ne PAS interpréter comme un avis médical : elles ne servent qu'à
- * colorer l'UI et déclencher les recommandations de démonstration.
+ * DOIVENT rester identiques à backend/app/seuils.py, qui décide de l'état
+ * global, des recommandations et du protocole : sinon une carte s'afficherait
+ * orange alors que le backend compte la valeur normale (ou l'inverse).
+ * Valeurs illustratives de prototype, sans valeur médicale.
+ *   FC : vert 50-100, orange 40-120 · SpO2 : vert >= 95, orange >= 90
+ *   Température : vert 36,1-37,5, orange 35,5-38,5 · Sommeil : vert >= 6 h, orange >= 4 h
  */
 export const VITALS = {
-  heartRate: { key: 'heartRate', label: 'Fréquence cardiaque', shortLabel: 'FC', unit: 'bpm', icon: 'HeartPulse', normal: [55, 90], warning: [45, 110] },
-  spo2: { key: 'spo2', label: 'Saturation en oxygène', shortLabel: 'SpO₂', unit: '%', icon: 'Wind', normal: [96, 100], warning: [92, 100] },
-  temperature: { key: 'temperature', label: 'Température corporelle', shortLabel: 'Température', unit: '°C', icon: 'Thermometer', normal: [36.1, 37.5], warning: [35.5, 38.2] },
-  sleepHours: { key: 'sleepHours', label: 'Sommeil (dernière nuit)', shortLabel: 'Sommeil', unit: 'h', icon: 'Moon', normal: [7, 10], warning: [5, 10] },
+  heartRate: { key: 'heartRate', label: 'Fréquence cardiaque', shortLabel: 'FC', unit: 'bpm', icon: 'HeartPulse', normal: [50, 100], warning: [40, 120] },
+  spo2: { key: 'spo2', label: 'Saturation en oxygène', shortLabel: 'SpO₂', unit: '%', icon: 'Wind', normal: [95, 100], warning: [90, 100] },
+  temperature: { key: 'temperature', label: 'Température corporelle', shortLabel: 'Température', unit: '°C', icon: 'Thermometer', normal: [36.1, 37.5], warning: [35.5, 38.5] },
+  sleepHours: { key: 'sleepHours', label: 'Sommeil (dernière nuit)', shortLabel: 'Sommeil', unit: 'h', icon: 'Moon', normal: [6, 24], warning: [4, 24] },
 }
 
 /** 'good' | 'warning' | 'critical' pour une valeur donnée d'une constante. */
