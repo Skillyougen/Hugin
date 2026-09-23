@@ -1,0 +1,46 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: huginn-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Pas de "deploy: gpu" ici pour rester compatible avec les machines du campus
+    # sans carte GPU dédiée. A ajouter si le matériel le permet.
+
+  backend:
+    build: .
+    container_name: huginn-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434/api/generate
+      - OLLAMA_MODEL=llama3.2:3b
+      - OLLAMA_TIMEOUT=8
+      - DATABASE_URL=sqlite:////app/data/huginn.db
+    volumes:
+      - backend_data:/app/data
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Bloc 4 : décommenter et adapter une fois le front prêt.
+  # Ce compose vit dans backend/, donc le contexte pointe vers ../frontend
+  # frontend:
+  #   build: ../frontend
+  #   container_name: huginn-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - VITE_API_URL=http://localhost:8000
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
+  # ---------------------------------------------------------------
+
+volumes:
+  ollama_data:
+  backend_data:
