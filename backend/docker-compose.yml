@@ -26,20 +26,20 @@ services:
       - ollama
     restart: unless-stopped
 
-  # ---------------------------------------------------------------
-  # Bloc 4 : décommenter et adapter une fois le front prêt.
-  # Ce compose vit dans backend/, donc le contexte pointe vers ../frontend
-  # frontend:
-  #   build: ../frontend
-  #   container_name: huginn-frontend
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - VITE_API_URL=http://localhost:8000
-  #   depends_on:
-  #     - backend
-  #   restart: unless-stopped
-  # ---------------------------------------------------------------
+  frontend:
+    build:
+      context: ../frontend
+      # Dockerfile hors de frontend/ : voir docker/frontend.Dockerfile
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: huginn-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    # Le front est encore 100% mocké (aucun appel réseau, voir
+    # frontend/src/mocks/) : pas de VITE_API_URL à passer tant que le
+    # Bloc 4 n'a pas branché les vrais appels sur docs/contrat-interface.md.
 
 volumes:
   ollama_data:
