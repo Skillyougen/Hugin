@@ -130,13 +130,17 @@ def test_range_invalide_et_garde_fou_ia():
     assert terminer_proprement("phrase sans fin") == ""
 
 
-def test_etat_ne_montre_que_les_cartes_du_dernier_import():
+def test_cinq_cartes_a_chaque_import_et_seulement_le_dernier():
     h = auth("nyota", "nyota1234")
     client.post("/mesures", json=NORMAL, headers=h)
+    cartes = client.get("/etat", headers=h).json()["recommandations"]
+    assert [c["type"] for c in cartes].count("social") == 1 and len(cartes) == 5
     client.post("/mesures", json=STRESS, headers=h)  # immédiatement après : même seconde
-    types = {r["type"] for r in client.get("/etat", headers=h).json()["recommandations"]}
-    assert "social" not in types  # carte « constantes normales » du 1er import
-    assert {"repos", "respiration", "hydratation"} <= types
+    cartes = client.get("/etat", headers=h).json()["recommandations"]
+    types = [c["type"] for c in cartes]
+    assert sorted(types) == sorted(["repos", "respiration", "exercice", "hydratation", "social"])  # 5, sans doublon
+    assert not any("dans les normes" in c["texte"] for c in cartes)  # rien du 1er import
+    assert types[:2] == ["repos", "respiration"]  # cartes liées aux valeurs hors norme d'abord
 
 
 def test_vue_equipage_redigee_pour_l_aidant():

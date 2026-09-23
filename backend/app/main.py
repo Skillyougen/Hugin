@@ -199,7 +199,7 @@ def etat_global(colon: models.Colon = Depends(get_current_colon), db: Session = 
             # Cartes du dernier import uniquement.
             models.Recommandation.mesure_id == derniere.id,
         )
-        .order_by(desc(models.Recommandation.timestamp), models.Recommandation.id)
+        .order_by(models.Recommandation.id)  # ordre de priorité fixé à la création
         .limit(5)
         .all()
     )

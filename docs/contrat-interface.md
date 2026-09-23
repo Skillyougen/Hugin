@@ -60,7 +60,7 @@ Profil du colon connecté : `{ "id": 1, "nom": "Erik" }`.
 ### `GET /etat`
 
 État global du colon connecté (carte d'état, résumé des dernières
-constantes, recommandations (plusieurs cartes, celles du dernier import : repos, respiration, hydratation…), protocole guidé actif s'il y en a un).
+constantes, recommandations (toujours 5 cartes, celles du dernier import : repos, respiration, exercice, hydratation, social ; celles liées à une valeur hors norme en premier), protocole guidé actif s'il y en a un).
 
 ```json
 {
