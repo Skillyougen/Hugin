@@ -39,9 +39,10 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    # Le front est encore 100% mocké (aucun appel réseau, voir
-    # frontend/src/mocks/) : pas de VITE_API_URL à passer tant que le
-    # Bloc 4 n'a pas branché les vrais appels sur docs/contrat-interface.md.
+    # Le front appelle le backend en http://localhost:8000 par défaut
+    # (frontend/src/api/client.js, surchageable via VITE_API_URL au build) :
+    # ça marche tel quel ici car le port 8000 est publié sur l'hôte, donc
+    # atteignable depuis le navigateur sans passer par le réseau Docker.
 
 volumes:
   ollama_data:

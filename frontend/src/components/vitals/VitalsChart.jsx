@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Card from '../ui/Card'
 import { VITALS } from '../../utils/thresholds'
-import { generateVitalsSeries } from '../../mocks/vitalsSeries'
-import { useScenario } from '../../context/ScenarioContext'
 
 const CHART_METRICS = ['heartRate', 'spo2', 'temperature']
 const RANGES = [
@@ -25,10 +23,14 @@ function Pill({ active, label, onClick }) {
   )
 }
 
-/** Graphique d'évolution — SVG maison, pas de lib tierce. */
-export default function VitalsChart() {
-  const { scenarioKey } = useScenario()
-  const [range, setRange] = useState('24h')
+/**
+ * Graphique d'évolution — SVG maison, pas de lib tierce.
+ * `data` : points `{ label, heartRate, spo2, temperature }` déjà construits
+ * par l'appelant (voir api/adapters.js::chartPointsFromMesures) ; `range` et
+ * `onRangeChange` pilotent le sélecteur 24h/7j en le remontant à l'appelant,
+ * qui refait l'appel `GET /mesures?range=` correspondant.
+ */
+export default function VitalsChart({ data, range, onRangeChange }) {
   const [metric, setMetric] = useState('heartRate')
   const [width, setWidth] = useState(0)
   const boxRef = useRef(null)
@@ -41,11 +43,10 @@ export default function VitalsChart() {
     return () => ro.disconnect()
   }, [])
 
-  const data = useMemo(() => generateVitalsSeries(scenarioKey, range), [scenarioKey, range])
   const def = VITALS[metric]
 
   const { path, points, yTicks } = useMemo(() => {
-    if (width <= 0) return { path: '', points: [], yTicks: [] }
+    if (width <= 0 || data.length === 0) return { path: '', points: [], yTicks: [] }
     const values = data.map((d) => d[metric])
     const min = Math.min(...values)
     const max = Math.max(...values)
@@ -76,7 +77,7 @@ export default function VitalsChart() {
         </div>
         <div className="flex gap-1 rounded-full bg-surface-sunken p-1">
           {RANGES.map(({ key, label }) => (
-            <Pill key={key} active={range === key} label={label} onClick={() => setRange(key)} />
+            <Pill key={key} active={range === key} label={label} onClick={() => onRangeChange(key)} />
           ))}
         </div>
       </div>

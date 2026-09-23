@@ -4,10 +4,11 @@ import { SCENARIOS } from '../mocks/scenarios'
 const ScenarioContext = createContext(null)
 
 /**
- * Scénario courant (normal / stress / crise). Sert uniquement à piloter la
- * démo tant que le flux "simulateur de montre → backend → app" n'est pas
- * branché. Le sélecteur associé (components/dev/ScenarioSwitcher) est un
- * outil de démo, pas une fonctionnalité du cahier des charges.
+ * Scénario courant (normal / stress / crise). Le backend est branché sur les
+ * pages Données/Historique (voir pages/VitalData.jsx, pages/History.jsx) ;
+ * ce contexte ne pilote plus que la démo Foxy de la page Chat, qui reste
+ * mockée (pas d'endpoint de chat libre côté backend, voir
+ * docs/contrat-interface.md).
  */
 export function ScenarioProvider({ children }) {
   const [scenarioKey, setScenarioKey] = useState('normal')

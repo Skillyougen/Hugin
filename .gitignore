@@ -1,0 +1,10 @@
+# Ruflo local secrets and runtime data
+.env
+.env.local
+.env.*.local
+.claude-flow
+.claude
+.swarm
+.agents
+.hive-mind
+Claude.md

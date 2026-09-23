@@ -33,9 +33,13 @@ prompt système IA qui n'est pas dans le cahier des charges.
 
 En attendant, `GET /etat` donne tout ce qu'il faut pour une page Accueil
 conforme au CDC (état global, dernières constantes, recommandations,
-protocole actif). `VitalData.jsx` et `History.jsx` sont déjà alignés avec
-les pages 2 et 3 du CDC et peuvent se brancher sur `GET /mesures` et
-`GET /recommandations` sans changement de structure de page.
+protocole actif). `VitalData.jsx` et `History.jsx` sont branchés sur le
+backend réel (`GET /etat`, `GET /mesures`, `GET /recommandations`,
+`POST /mesures`, `POST /protocole/etape-suivante` — voir
+`frontend/src/api/client.js` et `frontend/src/api/adapters.js`).
+`Chat.jsx` reste sur son mock 100% front tant que la décision ci-dessus
+n'est pas tranchée : rien ne le relie à `POST /mesures` pour ne pas
+détourner ce point d'entrée en chat libre déguisé.
 
 ## Authentification
 

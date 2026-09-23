@@ -3,6 +3,7 @@ import Icon from '../ui/Icon'
 import FoxyAvatar from '../mascot/FoxyAvatar'
 import { NAV_ITEMS } from '../../nav'
 import { useNightShift } from '../../utils/nightShift'
+import { useAuth } from '../../context/AuthContext'
 
 /**
  * Nav du haut, seule nav de l'app : le logo (tête de Foxy) ramène à
@@ -11,6 +12,7 @@ import { useNightShift } from '../../utils/nightShift'
 export default function TopNav() {
   const { pathname } = useLocation()
   const night = useNightShift()
+  const { colon, logout } = useAuth()
   const others = NAV_ITEMS.filter((item) => item.href !== pathname)
 
   return (
@@ -31,6 +33,17 @@ export default function TopNav() {
             <Icon name={icon} size={17} />
           </NavLink>
         ))}
+        {colon && (
+          <button
+            type="button"
+            onClick={logout}
+            aria-label={`Se déconnecter (${colon.nom})`}
+            title={`Se déconnecter (${colon.nom})`}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-surface-border text-text-secondary transition-colors hover:bg-surface-sunken hover:text-text-primary"
+          >
+            <Icon name="LogOut" size={17} />
+          </button>
+        )}
       </nav>
     </header>
   )
