@@ -31,6 +31,10 @@ class MesureIn(BaseModel):
     spo2: float = Field(..., ge=0, le=100, description="pourcentage")
     temperature: float = Field(..., ge=30, le=42, description="degrés Celsius")
     sommeil_heures: float = Field(..., ge=0, le=24, description="heures la nuit précédente")
+    # Texte libre optionnel. Contexte donné à l'IA pour la recommandation
+    # bien-être uniquement : ne déclenche et ne change jamais un protocole
+    # (qui reste choisi par les seuils ci-dessus, jamais par l'IA elle-même).
+    symptomes: str | None = Field(default=None, max_length=500)
 
 
 class MesureOut(MesureIn):

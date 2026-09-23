@@ -73,6 +73,7 @@ def recevoir_mesure(
         spo2=mesure.spo2,
         temp=mesure.temperature,
         sommeil=mesure.sommeil_heures,
+        symptomes=mesure.symptomes,
     )
 
     reco = models.Recommandation(

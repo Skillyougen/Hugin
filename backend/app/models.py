@@ -37,6 +37,10 @@ class Mesure(Base):
     spo2 = Column(Float, nullable=False)
     temperature = Column(Float, nullable=False)
     sommeil_heures = Column(Float, nullable=False)
+    # Texte libre optionnel ("je me sens...") : contexte pour l'IA
+    # uniquement, ne joue jamais dans la selection du protocole figé
+    # (qui reste basee sur les seuils des 4 constantes ci-dessus).
+    symptomes = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     colon = relationship("Colon", back_populates="mesures")

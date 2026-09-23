@@ -72,6 +72,7 @@ constantes, recommandations, protocole guidé actif s'il y en a un).
   "score": 2,                    // -1 | 0 | 1 | 2 (assorti à couleur)
   "derniere_mesure": { "id": 5, "colon_id": 1, "frequence_cardiaque": 128,
                         "spo2": 90, "temperature": 38.6, "sommeil_heures": 3.1,
+                        "symptomes": "un peu essoufflé depuis ce matin",
                         "timestamp": "2026-09-23T10:00:00" },
   "recommandations": [ { "id": 5, "texte": "...", "type": "respiration",
                           "etat_couleur": "rouge", "source": "ia",
@@ -132,7 +133,8 @@ Import manuel d'une mesure pour le colon connecté.
 
 ```json
 // Requête
-{ "frequence_cardiaque": 72, "spo2": 98, "temperature": 36.8, "sommeil_heures": 7.5 }
+{ "frequence_cardiaque": 72, "spo2": 98, "temperature": 36.8, "sommeil_heures": 7.5,
+  "symptomes": "un peu essoufflé depuis ce matin" }
 ```
 
 Plages plausibles validées côté serveur (`422` avec le détail du champ en
@@ -140,10 +142,18 @@ cause si une valeur est hors plage ou manquante — §5) :
 fréquence cardiaque 20–250 bpm, SpO2 0–100 %, température 30–42 °C,
 sommeil 0–24 h.
 
+`symptomes` est optionnel (texte libre, 500 caractères max) : ce que le
+colon décrit ressentir. **Il ne sert que de contexte pour la formulation de
+la recommandation IA** (passé dans le prompt Ollama) — il n'entre jamais
+dans le calcul de la couleur ni dans le choix du protocole de premiers
+secours, qui restent basés uniquement sur les 4 constantes. Toujours
+respecter le garde-fou du §5 : l'IA ne pose jamais de diagnostic à partir
+de ce texte.
+
 Réponse `200` : la mesure enregistrée (`id`, `colon_id`, les 4 valeurs,
-`timestamp`). Si l'état calculé est rouge, l'appel crée aussi l'alerte et le
-protocole actif — relire `GET /etat` ensuite (ou l'appeler juste après) pour
-les récupérer.
+`symptomes`, `timestamp`). Si l'état calculé est rouge, l'appel crée aussi
+l'alerte et le protocole actif — relire `GET /etat` ensuite (ou l'appeler
+juste après) pour les récupérer.
 
 ### `GET /mesures?range=24h|7j`
 
