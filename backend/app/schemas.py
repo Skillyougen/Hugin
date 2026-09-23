@@ -58,6 +58,16 @@ class RecommandationOut(BaseModel):
         from_attributes = True
 
 
+class HistoriqueConversationOut(BaseModel):
+    id: int
+    message_utilisateur: str | None
+    reponse_ia: str
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PrescriptionOut(BaseModel):
     medicament: str
     dosage: str

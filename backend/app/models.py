@@ -15,6 +15,7 @@ class Colon(Base):
     mesures = relationship("Mesure", back_populates="colon")
     recommandations = relationship("Recommandation", back_populates="colon")
     alertes = relationship("Alerte", back_populates="colon")
+    historique_conversation = relationship("HistoriqueConversation", back_populates="colon")
 
 
 class SessionAuth(Base):
@@ -73,6 +74,26 @@ class Alerte(Base):
 
     colon = relationship("Colon", back_populates="alertes")
     suivi = relationship("SuiviProtocole", back_populates="alerte", uselist=False)
+
+
+class HistoriqueConversation(Base):
+    """
+    Trace, par colon, chaque échange avec l'IA déclenché par un import de
+    mesure (symptômes décrits + recommandation générée). Sert de contexte
+    passé à l'IA lors des prochains échanges (voir ia.py) pour des réponses
+    plus personnalisées — n'entre jamais dans le calcul de couleur ni le
+    choix du protocole, qui restent basés uniquement sur les seuils.
+    """
+
+    __tablename__ = "historique_conversation"
+
+    id = Column(Integer, primary_key=True, index=True)
+    colon_id = Column(Integer, ForeignKey("colons.id"), nullable=False)
+    message_utilisateur = Column(String, nullable=True)
+    reponse_ia = Column(String, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    colon = relationship("Colon", back_populates="historique_conversation")
 
 
 class Medicament(Base):

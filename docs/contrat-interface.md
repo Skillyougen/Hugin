@@ -168,6 +168,24 @@ pré-chargé).
 Historique des recommandations du colon connecté, plus récentes d'abord.
 `type` est optionnel (filtre bonus du §4).
 
+### `GET /historique-conversation`
+
+Historique des échanges IA du colon connecté (texte libre décrit lors d'un
+import de mesure + recommandation générée), plus récents d'abord.
+
+```json
+[ { "id": 5, "message_utilisateur": "un peu essoufflé depuis ce matin",
+    "reponse_ia": "...", "timestamp": "2026-09-23T10:00:00" } ]
+```
+
+Ce n'est **pas** l'endpoint de chat libre écarté plus haut : ces entrées
+sont créées automatiquement par `POST /mesures` (une par mesure importée),
+pas par un envoi de message libre. Elles servent aussi de contexte propre
+à chaque colon, réinjecté dans le prompt IA lors de sa prochaine mesure
+(`ia.py::generer_recommandation`, paramètre `historique`) pour des réponses
+plus personnalisées — jamais pour changer la couleur ou le protocole, qui
+restent basés uniquement sur les seuils (même garde-fou que `symptomes`).
+
 ## Inventaire (support démo)
 
 ### `GET /medicaments`

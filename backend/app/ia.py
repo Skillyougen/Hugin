@@ -23,10 +23,20 @@ de contacter le médecin de bord.
 le ton de ta réponse, mais ce texte ne doit JAMAIS te faire poser un diagnostic \
 ni changer la conduite à tenir — celle-ci est déjà fixée par les seuils et les \
 protocoles figés du système, pas par toi.
+- Un historique des échanges précédents avec ce colon peut t'être donné comme \
+contexte : sers-t'en uniquement pour personnaliser le ton et éviter de te \
+répéter, jamais pour poser un diagnostic ni changer la conduite à tenir.
 """
 
 
-def generer_recommandation(fc: float, spo2: float, temp: float, sommeil: float, symptomes: str | None = None) -> dict:
+def generer_recommandation(
+    fc: float,
+    spo2: float,
+    temp: float,
+    sommeil: float,
+    symptomes: str | None = None,
+    historique: list[str] | None = None,
+) -> dict:
     """
     Tente d'utiliser Ollama. Si erreur ou timeout, bascule sur le moteur de
     règles (mode dégradé) — exigence non fonctionnelle du cahier des charges.
@@ -36,10 +46,22 @@ def generer_recommandation(fc: float, spo2: float, temp: float, sommeil: float, 
     la formulation de la recommandation IA : il n'entre jamais dans le
     calcul de `couleur` ni dans la sélection du protocole (seuils.py /
     protocoles.py), qui restent basés uniquement sur les 4 constantes.
+
+    `historique` (optionnel) : quelques échanges précédents de CE colon
+    ("message -> réponse"), du plus ancien au plus récent, pour donner à
+    l'IA un contexte propre à la personne (continuité, ton). Même garde-fou
+    que `symptomes` : contexte de formulation uniquement, jamais un signal
+    de décision.
     """
     couleur, score, details = evaluer_mesure(fc, spo2, temp, sommeil)
 
-    prompt = (
+    prompt = ""
+    if historique:
+        prompt += "Échanges précédents avec ce colon (contexte, du plus ancien au plus récent) :\n"
+        prompt += "\n".join(f"- {ligne}" for ligne in historique)
+        prompt += "\n\n"
+
+    prompt += (
         f"Constantes actuelles du colon :\n"
         f"- Fréquence cardiaque : {fc:.0f} bpm\n"
         f"- SpO2 : {spo2:.0f}%\n"

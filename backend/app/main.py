@@ -68,12 +68,28 @@ def recevoir_mesure(
     couleur, _score, details = evaluer_mesure(
         mesure.frequence_cardiaque, mesure.spo2, mesure.temperature, mesure.sommeil_heures
     )
+
+    # Contexte propre à ce colon (§ ia.py : formulation uniquement, jamais
+    # un signal de décision) — les échanges les plus récents en dernier.
+    derniers_echanges = (
+        db.query(models.HistoriqueConversation)
+        .filter(models.HistoriqueConversation.colon_id == colon.id)
+        .order_by(desc(models.HistoriqueConversation.timestamp))
+        .limit(5)
+        .all()
+    )
+    historique = [
+        f"{h.message_utilisateur or '(pas de texte libre)'} -> {h.reponse_ia}"
+        for h in reversed(derniers_echanges)
+    ]
+
     resultat = generer_recommandation(
         fc=mesure.frequence_cardiaque,
         spo2=mesure.spo2,
         temp=mesure.temperature,
         sommeil=mesure.sommeil_heures,
         symptomes=mesure.symptomes,
+        historique=historique,
     )
 
     reco = models.Recommandation(
@@ -84,6 +100,11 @@ def recevoir_mesure(
         source=resultat["source"],
     )
     db.add(reco)
+    db.add(models.HistoriqueConversation(
+        colon_id=colon.id,
+        message_utilisateur=mesure.symptomes,
+        reponse_ia=resultat["texte"],
+    ))
 
     if couleur == "rouge":
         protocole = selectionner_protocole(details)
@@ -178,6 +199,21 @@ def historique_recommandations(
     if type:
         query = query.filter(models.Recommandation.type == type)
     return query.order_by(desc(models.Recommandation.timestamp)).all()
+
+
+@app.get("/historique-conversation", response_model=list[schemas.HistoriqueConversationOut])
+def historique_conversation(colon: models.Colon = Depends(get_current_colon), db: Session = Depends(get_db)):
+    """
+    Échanges passés (symptômes décrits + réponse IA) du colon connecté,
+    plus récents d'abord. C'est ce même historique qui sert de contexte à
+    l'IA pour ses prochaines recommandations (voir recevoir_mesure).
+    """
+    return (
+        db.query(models.HistoriqueConversation)
+        .filter(models.HistoriqueConversation.colon_id == colon.id)
+        .order_by(desc(models.HistoriqueConversation.timestamp))
+        .all()
+    )
 
 
 @app.post("/protocole/etape-suivante", response_model=schemas.ProtocoleActifOut)
