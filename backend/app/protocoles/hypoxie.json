@@ -1,0 +1,22 @@
+{
+  "id": "hypoxie",
+  "titre": "Détresse respiratoire / hypoxie (SpO2 basse)",
+  "declencheur": { "constante": "spo2", "niveau_minimal": 2 },
+  "etapes": [
+    "Arrête toute activité et assieds-toi ou allonge-toi, dos droit si possible.",
+    "Va chercher le masque à oxygène du kit médical de bord et place-le sur ton nez et ta bouche.",
+    "Respire lentement par le nez sur 4 temps, bloque 2 temps, expire sur 6 temps.",
+    "Préviens un membre de l'équipage le plus proche pendant que tu restes assis·e.",
+    "Prends le traitement indiqué ci-dessous, puis reste au repos et surveille ta SpO2."
+  ],
+  "prescription": {
+    "medicament": "Bronchodilatateur inhalé",
+    "dosage": "2 bouffées",
+    "duree": "à renouveler toutes les 4h pendant 24h",
+    "alternative": {
+      "medicament": "Oxygène médical (masque)",
+      "dosage": "débit continu 4 L/min",
+      "duree": "jusqu'à stabilisation de la SpO2"
+    }
+  }
+}

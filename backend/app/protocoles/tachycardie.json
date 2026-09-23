@@ -1,0 +1,22 @@
+{
+  "id": "tachycardie",
+  "titre": "Fréquence cardiaque critique",
+  "declencheur": { "constante": "frequence_cardiaque", "niveau_minimal": 2 },
+  "etapes": [
+    "Arrête tout effort immédiatement et assieds-toi.",
+    "Desserre toute sangle ou combinaison serrée autour du torse.",
+    "Fais une respiration abdominale lente : inspire 4 temps, expire 6 temps, dix fois.",
+    "Bois un peu d'eau si tu le peux, sans te lever.",
+    "Prends le traitement indiqué ci-dessous, puis reste assis·e 15 minutes avant de reprendre une activité légère."
+  ],
+  "prescription": {
+    "medicament": "Bêta-bloquant (propranolol)",
+    "dosage": "10 mg",
+    "duree": "dose unique, ne pas renouveler sans avis de l'équipage",
+    "alternative": {
+      "medicament": "Anxiolytique léger",
+      "dosage": "5 mg",
+      "duree": "dose unique"
+    }
+  }
+}

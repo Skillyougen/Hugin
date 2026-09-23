@@ -40,7 +40,7 @@ pip install -r ../requirements.txt
 ollama serve
 ollama pull llama3.2:3b     # ou le modèle 7B retenu après le test de mardi
 
-# Créer le colon de démo "Erik"
+# Créer les comptes colons de démo + le stock de médicaments
 python seed.py
 
 # Lancer l'API
@@ -49,6 +49,11 @@ uvicorn main:app --reload --port 8000
 
 L'API est alors sur `http://localhost:8000`. Doc interactive auto-générée :
 `http://localhost:8000/docs`.
+
+> Après avoir mis à jour ce backend (authentification, protocoles,
+> médicaments), le schéma de la base a changé. Si tu avais déjà un
+> `huginn.db` d'avant cette mise à jour, supprime-le (ou `docker compose
+> down -v`) avant de relancer, sinon les nouvelles colonnes manqueront.
 
 ## Variables d'environnement (optionnelles)
 
@@ -59,25 +64,48 @@ L'API est alors sur `http://localhost:8000`. Doc interactive auto-générée :
 ## Tester rapidement sans le simulateur
 
 ```bash
-curl -X POST http://localhost:8000/mesures \
+# Connexion (comptes de démo créés par seed.py)
+curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"colon_id":1,"frequence_cardiaque":72,"spo2":98,"temperature":36.8,"sommeil_heures":7.5}'
+  -d '{"identifiant":"erik","mot_de_passe":"erik1234"}'
+# -> {"token": "...", "colon_id": 1, "nom": "Erik"}
 
-curl http://localhost:8000/colons/1/etat
+TOKEN="<coller le token reçu>"
+
+curl -X POST http://localhost:8000/mesures \
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+  -d '{"frequence_cardiaque":72,"spo2":98,"temperature":36.8,"sommeil_heures":7.5}'
+
+curl http://localhost:8000/etat -H "Authorization: Bearer $TOKEN"
 ```
 
 Pour simuler le scénario "stress" ou "crise", change simplement les valeurs
-envoyées (ex. `frequence_cardiaque:115, sommeil_heures:3` pour du orange/rouge).
+envoyées (ex. `frequence_cardiaque:115, sommeil_heures:3` pour du orange ;
+`spo2:88` pour déclencher le protocole "hypoxie" en rouge + une alerte).
 
 ## Points d'intégration pour les autres blocs
 
-- **Bloc 1 (simulateur)** : `POST /mesures` — c'est le seul point d'entrée à cibler.
-- **Bloc 2 (IA)** : le prompt système est dans `ia.py`. Le modèle et l'URL Ollama
+Voir **`docs/contrat-interface.md`** à la racine du dépôt pour le détail de
+chaque endpoint (payloads, réponses, codes d'erreur). Résumé :
+
+- **Bloc 1 (données colon / import manuel)** : `POST /auth/login` puis
+  `POST /mesures` — les deux seuls points d'entrée à cibler.
+- **Bloc 2 (IA)** : le prompt système est dans `ia.py`, les protocoles de
+  premiers secours figés dans `protocoles/*.json`. Le modèle et l'URL Ollama
   se règlent par variables d'environnement, pas besoin de toucher au reste du code.
-- **Bloc 4 (front)** : `GET /colons/{id}/etat` pour la page Accueil,
-  `GET /colons/{id}/mesures?range=24h|7j` pour la page 2,
-  `GET /colons/{id}/recommandations` pour la page 3.
-  CORS est ouvert (`*`) pour le dev, à restreindre si besoin avant la démo.
+- **Bloc 4 (front)** : `GET /etat` pour la page Accueil (inclut le protocole
+  actif s'il y en a un), `GET /mesures?range=24h|7j` pour la page 2,
+  `GET /recommandations` pour la page 3, `GET /alertes` pour le bandeau
+  équipage, `GET /alertes/{id}/protocole` pour "Que faire ?".
+  Toutes les routes sauf `/health` et `/auth/login` exigent
+  `Authorization: Bearer <token>`. CORS est ouvert (`*`) pour le dev, à
+  restreindre si besoin avant la démo.
+
+⚠️ La page "Accueil" du front actuel (`frontend/src/pages/Chat.jsx`) est un
+chat libre mocké — au-delà du périmètre du prototype selon le cahier des
+charges (§2 : "Chat libre... évolution prévue pour une V1"). Le backend
+n'expose donc pas d'endpoint de chat : voir `docs/contrat-interface.md` pour
+le détail et un point à trancher en équipe avant jeudi soir.
 
 ## Mode dégradé
 
