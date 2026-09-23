@@ -93,6 +93,10 @@ class ProtocoleActifOut(BaseModel):
     protocole_id: str
     titre: str
     etapes: list[str]
+    # Nom du colon concerné et point de vue du texte : « colon » = rédigé pour la
+    # personne en détresse (tu), « equipage » = rédigé pour qui l'aide.
+    colon_nom: str = ""
+    vue: str = "colon"
     etape_courante: int
     termine: bool
     prescription: PrescriptionOut | None

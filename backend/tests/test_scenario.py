@@ -126,3 +126,19 @@ def test_etat_ne_montre_que_les_cartes_du_dernier_import():
     types = {r["type"] for r in client.get("/etat", headers=h).json()["recommandations"]}
     assert "social" not in types  # carte « constantes normales » du 1er import
     assert {"repos", "respiration", "hydratation"} <= types
+
+
+def test_vue_equipage_redigee_pour_l_aidant():
+    erik, nyota = auth("erik", "erik1234"), auth("nyota", "nyota1234")
+    client.post("/mesures", json=CRISE, headers=erik)
+    propre = client.get("/etat", headers=erik).json()["protocole_actif"]
+    alerte_id = client.get("/alertes", headers=nyota).json()[0]["id"]
+    equipe = client.get(f"/alertes/{alerte_id}/protocole", headers=nyota).json()
+    assert propre["vue"] == "colon" and equipe["vue"] == "equipage"
+    assert len(propre["etapes"]) == len(equipe["etapes"])  # mêmes étapes, même progression
+    assert "ton nez" in " ".join(propre["etapes"])
+    texte = " ".join(equipe["etapes"])
+    assert "Erik" in texte and "ton " not in texte and "{nom}" not in texte
+    assert equipe["colon_nom"] == "Erik"
+    # Le colon concerné qui consulte via l'alerte garde sa propre rédaction
+    assert client.get(f"/alertes/{alerte_id}/protocole", headers=erik).json()["vue"] == "colon"

@@ -9,6 +9,9 @@ import Icon from '../ui/Icon'
  */
 export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnly = false }) {
   const [pending, setPending] = useState(false)
+  const total = protocole.etapes.length
+  // Vue équipage : texte rédigé pour la personne qui aide, pas pour celle en détresse.
+  const aidant = protocole.vue === 'equipage'
 
   async function handleNext() {
     setPending(true)
@@ -25,6 +28,16 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnl
         <Icon name="ShieldAlert" size={20} />
         <h2 className="m-0 text-sm font-semibold">{protocole.titre}</h2>
       </div>
+      {aidant && (
+        <p className="m-0 rounded-xl bg-status-critical-soft p-3 text-sm font-medium text-[#b91c1c]">
+          {protocole.colon_nom} a besoin d'aide. Suis ces étapes pour l'assister.
+        </p>
+      )}
+      {!protocole.termine && (
+        <p className="m-0 text-xs font-semibold uppercase tracking-wide text-text-muted">
+          Étape {Math.min(protocole.etape_courante + 1, total)} sur {total}
+        </p>
+      )}
       <ol className="m-0 flex flex-col gap-2 pl-5 text-sm text-text-secondary">
         {protocole.etapes.map((etape, i) => (
           <li key={etape} className={i === protocole.etape_courante ? 'font-semibold text-text-primary' : i < protocole.etape_courante ? 'text-text-muted line-through' : ''}>
@@ -34,6 +47,7 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnl
       </ol>
       {protocole.prescription && (
         <p className="m-0 rounded-xl bg-surface-sunken p-3 text-xs text-text-secondary">
+          {aidant ? 'Traitement à faire prendre : ' : 'Traitement : '}
           {protocole.prescription.medicament} — {protocole.prescription.dosage}, {protocole.prescription.duree}
           {protocole.prescription.utilise_alternative && ' (alternative de stock)'}
           {protocole.prescription.stock_restant != null &&
@@ -45,7 +59,7 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnl
       )}
       {readOnly ? (
         <p className="m-0 text-xs text-text-muted">
-          {protocole.termine ? 'Protocole terminé — alerte résolue.' : 'Lecture seule : seul le colon concerné avance les étapes.'}
+          {protocole.termine ? 'Protocole terminé — alerte résolue.' : `Lecture seule : seul·e ${protocole.colon_nom} valide les étapes ; l'alerte se résout à la fin du protocole.`}
         </p>
       ) : protocole.termine ? (
         <p className="m-0 text-xs font-medium text-status-good">Protocole terminé — alerte résolue.</p>

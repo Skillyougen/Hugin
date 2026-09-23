@@ -92,6 +92,11 @@ constantes, recommandations (plusieurs cartes, celles du dernier import : repos,
 "pas de vert par défaut" du §4 : n'affiche ni carte d'état ni recommandation
 dans ce cas, invite au premier import.
 
+Champs `colon_nom` et `vue` : `vue` vaut `"colon"` (étapes rédigées à la 2ᵉ
+personne pour le colon en détresse) ou `"equipage"` (mêmes étapes, même nombre,
+rédigées pour la personne qui aide, avec le nom du colon). `GET /alertes/{id}/protocole`
+renvoie la vue `equipage` aux autres colons ; le colon concerné garde la vue `colon`.
+
 `protocole_actif` est `null` s'il n'y a pas d'alerte active en cours pour ce
 colon. Ses `etapes` sont le contenu figé complet du protocole ; `etape_courante`
 indexe la dernière étape validée (0 = aucune étape encore franchie).

@@ -1,7 +1,10 @@
 {
   "id": "hyperthermie",
   "titre": "Température corporelle critique",
-  "declencheur": { "constante": "temperature", "niveau_minimal": 2 },
+  "declencheur": {
+    "constante": "temperature",
+    "niveau_minimal": 2
+  },
   "etapes": [
     "Rends-toi dans un espace frais du vaisseau et retire les couches de vêtement superflues.",
     "Applique un linge humide sur le front, la nuque et les poignets.",
@@ -18,5 +21,12 @@
       "dosage": "1 g",
       "duree": "toutes les 6h, maximum 4g/jour"
     }
-  }
+  },
+  "etapes_equipage": [
+    "Accompagne {nom} vers un espace frais du vaisseau et aide à retirer les couches de vêtement superflues.",
+    "Applique un linge humide sur le front, la nuque et les poignets de {nom}.",
+    "Fais boire de l'eau à {nom} à petites gorgées régulières.",
+    "Reste auprès de {nom} et préviens un autre membre de l'équipage.",
+    "Fais prendre à {nom} le traitement indiqué ci-dessous et vérifie la température de {nom} toutes les 30 minutes."
+  ]
 }

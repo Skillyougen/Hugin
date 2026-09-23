@@ -1,7 +1,10 @@
 {
   "id": "tachycardie",
   "titre": "Fréquence cardiaque critique",
-  "declencheur": { "constante": "frequence_cardiaque", "niveau_minimal": 2 },
+  "declencheur": {
+    "constante": "frequence_cardiaque",
+    "niveau_minimal": 2
+  },
   "etapes": [
     "Arrête tout effort immédiatement et assieds-toi.",
     "Desserre toute sangle ou combinaison serrée autour du torse.",
@@ -18,5 +21,12 @@
       "dosage": "5 mg",
       "duree": "dose unique"
     }
-  }
+  },
+  "etapes_equipage": [
+    "Fais arrêter tout effort à {nom} immédiatement et installe {nom} en position assise.",
+    "Aide {nom} à desserrer toute sangle ou combinaison serrée autour du torse.",
+    "Guide {nom} dans une respiration abdominale lente : inspirer 4 temps, expirer 6 temps, dix fois.",
+    "Propose à {nom} de boire un peu d'eau, sans se lever.",
+    "Fais prendre à {nom} le traitement indiqué ci-dessous, puis garde {nom} assis·e 15 minutes avant toute activité légère."
+  ]
 }

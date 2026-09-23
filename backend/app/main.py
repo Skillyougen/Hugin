@@ -332,7 +332,8 @@ def protocole_de_alerte(alerte_id: int, db: Session = Depends(get_db), colon: mo
         raise HTTPException(status_code=404, detail="Alerte introuvable")
     if not alerte.suivi:
         raise HTTPException(status_code=404, detail="Aucun protocole associé à cette alerte")
-    return _construire_protocole_actif(alerte, alerte.suivi)
+    # Le colon concerné garde sa propre rédaction ; les autres voient celle de l'aidant.
+    return _construire_protocole_actif(alerte, alerte.suivi, equipage=alerte.colon_id != colon.id)
 
 
 @app.get("/medicaments", response_model=list[schemas.MedicamentOut])
@@ -341,8 +342,18 @@ def lister_medicaments(db: Session = Depends(get_db), colon: models.Colon = Depe
     return db.query(models.Medicament).order_by(models.Medicament.nom).all()
 
 
-def _construire_protocole_actif(alerte: models.Alerte, suivi: models.SuiviProtocole) -> schemas.ProtocoleActifOut:
+def _construire_protocole_actif(
+    alerte: models.Alerte, suivi: models.SuiviProtocole, equipage: bool = False
+) -> schemas.ProtocoleActifOut:
     proto = PROTOCOLES[suivi.protocole_id]
+    nom = alerte.colon.nom
+    # Le contenu reste figé (fichiers JSON) : la vue équipage est une seconde
+    # rédaction des mêmes étapes, adressée à la personne qui aide.
+    if equipage and proto.get("etapes_equipage"):
+        etapes = [e.replace("{nom}", nom) for e in proto["etapes_equipage"]]
+    else:
+        etapes = proto["etapes"]
+    equipage = equipage and etapes is not proto["etapes"]
     prescription = None
     if suivi.medicament_delivre:
         prescription = schemas.PrescriptionOut(
@@ -356,7 +367,9 @@ def _construire_protocole_actif(alerte: models.Alerte, suivi: models.SuiviProtoc
         alerte_id=alerte.id,
         protocole_id=proto["id"],
         titre=proto["titre"],
-        etapes=proto["etapes"],
+        etapes=etapes,
+        colon_nom=nom,
+        vue="equipage" if equipage else "colon",
         etape_courante=suivi.etape_courante,
         termine=suivi.termine,
         prescription=prescription,
