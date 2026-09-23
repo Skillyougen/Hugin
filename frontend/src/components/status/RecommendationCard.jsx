@@ -1,6 +1,6 @@
 import Card from '../ui/Card'
 import Icon from '../ui/Icon'
-import { RECOMMENDATION_CATEGORIES } from '../../mocks/recommendations'
+import { RECOMMENDATION_CATEGORIES } from '../../data/categories'
 
 export default function RecommendationCard({ recommendation }) {
   const category = RECOMMENDATION_CATEGORIES[recommendation.category]

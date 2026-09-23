@@ -2,7 +2,7 @@
  * Fond animé de l'accueil : deux blobs flous bleu/vert qui dérivent
  * lentement. Atténué en quart de nuit, figé sous prefers-reduced-motion.
  */
-export default function ChatBackground() {
+export default function HomeBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <div

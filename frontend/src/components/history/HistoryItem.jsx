@@ -1,7 +1,7 @@
 import Card from '../ui/Card'
 import Icon from '../ui/Icon'
 import StatusBadge from '../ui/StatusBadge'
-import { RECOMMENDATION_CATEGORIES } from '../../mocks/recommendations'
+import { RECOMMENDATION_CATEGORIES } from '../../data/categories'
 import { formatDateTime } from '../../utils/format'
 
 export default function HistoryItem({ entry }) {

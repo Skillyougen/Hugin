@@ -1,6 +1,6 @@
 // Adapte les formes de réponse du backend (docs/contrat-interface.md) vers
-// les formes attendues par les composants UI existants (mocks/*).
-import { RECOMMENDATION_CATEGORIES } from '../mocks/recommendations'
+// les formes attendues par les composants UI existants (voir data/ et components/).
+import { RECOMMENDATION_CATEGORIES } from '../data/categories'
 
 const COULEUR_TO_LEVEL = { vert: 'good', orange: 'warning', rouge: 'critical' }
 const COULEUR_TO_SCORE = { vert: 100, orange: 55, rouge: 15 }

@@ -1,4 +1,4 @@
-import { RECOMMENDATION_CATEGORIES } from '../../mocks/recommendations'
+import { RECOMMENDATION_CATEGORIES } from '../../data/categories'
 
 /** Filtre par type de recommandation — fonctionnalité bonus du cahier des charges. */
 export default function HistoryFilter({ value, onChange }) {

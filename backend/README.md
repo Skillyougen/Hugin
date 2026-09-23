@@ -78,7 +78,7 @@ curl -X POST http://localhost:8000/mesures \
 curl http://localhost:8000/etat -H "Authorization: Bearer $TOKEN"
 ```
 
-Pour simuler le scénario "stress" ou "crise", change simplement les valeurs
+Pour rejouer le scénario "stress" ou "crise", change simplement les valeurs
 envoyées (ex. `frequence_cardiaque:115, sommeil_heures:3` pour du orange ;
 `spo2:88` pour déclencher le protocole "hypoxie" en rouge + une alerte).
 
@@ -100,15 +100,24 @@ chaque endpoint (payloads, réponses, codes d'erreur). Résumé :
   `Authorization: Bearer <token>`. CORS est ouvert (`*`) pour le dev, à
   restreindre si besoin avant la démo.
 
-⚠️ La page "Accueil" du front actuel (`frontend/src/pages/Chat.jsx`) est un
-chat libre mocké — au-delà du périmètre du prototype selon le cahier des
-charges (§2 : "Chat libre... évolution prévue pour une V1"). Le backend
-n'expose donc pas d'endpoint de chat : voir `docs/contrat-interface.md` pour
-le détail et un point à trancher en équipe avant jeudi soir.
-
 ## Mode dégradé
 
 Si Ollama ne répond pas dans le délai (`OLLAMA_TIMEOUT`) ou renvoie une erreur,
 `ia.py` bascule automatiquement sur `seuils.recommandations_regles()`. C'est
 transparent pour le front : la réponse a juste `"source": "regles"` au lieu
 de `"ia"`. Utile pour la démo du scénario "coupure du modèle IA en direct".
+
+## Sécurité (résumé)
+
+- Sessions de 12 h (`SESSION_HEURES`), 5 échecs de connexion par minute et par
+  identifiant au maximum (429), mots de passe hachés en PBKDF2.
+- CORS limité aux origines du front (`CORS_ORIGINS`, défaut : localhost).
+- Sortie du modèle filtrée : toute posologie ou nom de médicament dans le texte
+  généré le fait remplacer par le moteur de règles (le contenu médical ne vient
+  que des protocoles figés).
+
+## Tests
+
+```bash
+cd backend && pip install pytest httpx && python -m pytest tests -q
+```

@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ScenarioProvider } from './context/ScenarioContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import TopNav from './components/nav/TopNav'
 import CrewAlerts from './components/status/CrewAlerts'
 import IntroSplash from './components/mascot/IntroSplash'
-import ChatPage from './pages/Chat'
+import HomePage from './pages/Home'
 import VitalDataPage from './pages/VitalData'
 import HistoryPage from './pages/History'
 import LoginPage from './pages/Login'
@@ -23,13 +22,13 @@ function AuthenticatedApp() {
   }
 
   return (
-    <ScenarioProvider>
+    <>
       <div className="flex h-dvh flex-col bg-surface text-text-primary">
         <TopNav />
         <CrewAlerts />
         <main className="min-h-0 flex-1">
           <Routes>
-            <Route path="/" element={<ChatPage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/donnees" element={<VitalDataPage />} />
             <Route path="/historique" element={<HistoryPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -37,7 +36,7 @@ function AuthenticatedApp() {
         </main>
       </div>
       {intro && <IntroSplash onDone={endIntro} />}
-    </ScenarioProvider>
+    </>
   )
 }
 

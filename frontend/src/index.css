@@ -82,7 +82,7 @@ a { color: var(--color-ocean-600); }
 a:hover { color: var(--color-ocean-800); }
 :focus-visible { outline: 2px solid var(--color-ocean-500); outline-offset: 2px; }
 
-/* Fond animé du chat : deux blobs flous qui dérivent. */
+/* Fond animé de l accueil : deux blobs flous qui dérivent. */
 @keyframes hg-blob-a { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(12%, 10%) scale(1.15) } }
 @keyframes hg-blob-b { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-10%, -8%) scale(1.1) } }
 @keyframes hg-dot { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-4px) } 60% { transform: translateY(0) } }

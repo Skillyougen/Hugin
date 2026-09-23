@@ -1,26 +1,31 @@
 # Reste à faire
 
-État au 2026-09-23. Backend et front sont fonctionnels de bout en bout côté API ; les points ci-dessous n'ont pas pu être terminés ou vérifiés.
+État au 2026-09-23. Vérifié : 8 tests pytest (`backend/tests`) et un parcours navigateur headless (Chromium, mobile 390 px, avant retrait du mock : à rejouer) : connexion, état critique, protocole guidé, bandeau équipage, « Que faire ? », avancée des étapes, résolution automatique de l'alerte, page Données.
 
 ## Non vérifié faute d'environnement
 
-- **Docker Compose** : le CLI Docker existe mais le démon n'est pas joignable depuis WSL (intégration Docker Desktop/WSL2 non activée) ; `docker-compose.yml` et les Dockerfile n'ont pas été lancés. Le backend a été validé en local (venv Python + uvicorn + pytest).
-- **Ollama / modèle réel** : Ollama n'est pas installé ici. Seul le **mode dégradé** (`source: "regles"`) a été exercé. Le chemin `source: "ia"`, le choix 3B vs 7B et la cible < 10 s restent à tester sur le matériel du campus (`OLLAMA_MODEL`, `OLLAMA_TIMEOUT=8` dans `docker-compose.yml`).
-- **Front dans un navigateur** : le build Vite passe, mais aucune vérification visuelle/manuelle (pas de navigateur). Le câblage de l'accueil (`Chat.jsx`), `CrewAlerts` et `ActiveProtocolCard` est à parcourir à la main, sur téléphone et ordinateur (critère §8).
+- **Docker Compose** : le CLI Docker existe mais le démon n'est pas joignable depuis WSL (intégration Docker Desktop/WSL2 non activée) ; `docker-compose.yml` et les Dockerfile n'ont jamais été lancés. Le backend a tourné en venv Python + uvicorn, le front en build Vite servi en statique.
+- **Ollama / modèle réel** : non installé ici. Seul le **mode dégradé** (`source: "regles"`) a été exercé. Le chemin `source: "ia"`, le choix 3B vs 7B et la cible < 10 s restent à tester sur le matériel du campus (`OLLAMA_MODEL` ; `OLLAMA_TIMEOUT=8` dans `docker-compose.yml`, à relever si le modèle est lent au premier appel).
+- **Téléphone / tablette réels** et navigateurs autres que Chromium ; formulaire d'import et page Historique non parcourus dans le navigateur (l'API correspondante est testée).
 - **Hors ligne total** : polices/CDN externes du front non auditées.
 
-## Décisions produit laissées en l'état
+## Choix assumés
 
-- **Accueil = chat mocké** : le fil de discussion (`Chat.jsx`, `mocks/chatAssistant.js`) reste 100 % front, car le chat libre est hors périmètre du CDC (§2). L'accueil affiche désormais l'état réel, les recommandations et le protocole guidé issus de `GET /etat`. À trancher : garder ce hybride, ou retirer le fil mocké au profit de la page Accueil du CDC.
-- **Import des constantes** uniquement sur la page « Données » (pas sur l'accueil).
-- **Alertes équipage** : sondage toutes les 8 s (pas de WebSocket/SSE).
+- Plus aucun mock côté front : l'accueil, les données et l'historique viennent tous de l'API. Pas de chat libre (hors périmètre CDC §2).
+- Import des constantes uniquement sur la page « Données ».
+- Alertes équipage : sondage toutes les 8 s (pas de WebSocket/SSE).
+- Contenu médical illustratif (avertissement dans le README, le dossier technique et la présentation) : l'objectif est une démo fonctionnelle, pas des procédures validées.
 
-## Écarts / dette technique
+## Sécurité : limites connues du prototype
 
-- Seuils (`seuils.py`) : non validés médicalement. Ex. sommeil < 4 h donne « rouge » et déclenche le protocole épuisement ; pour la démo « orange », utiliser 4–6 h de sommeil.
-- Le stock à zéro n'est pas géré (hors périmètre CDC §5) ; le décrément n'est pas atomique sous forte concurrence (SQLite, prototype).
-- CORS ouvert (`*`) et comptes de démo (`erik1234`, `nyota1234`) : à restreindre hors démo. Les sessions n'expirent pas.
-- Warnings `oxlint` préexistants dans le front (effets/refs) non traités ; `datetime.utcnow()` déprécié côté backend.
-- Livrables jury (dossier PDF, présentation, intro en anglais) : hors code, non traités.
-- Bonus : filtre par type dans l'historique (endpoint prêt, UI non vérifiée), montre ESP32 non faite.
-- Outils de coordination ruflo (MCP `claude-flow`) : connexion en timeout durant la session, le travail a été fait directement sans swarm.
+- Comptes de démo (`erik1234`, `nyota1234`) et tokens en `localStorage` : à changer/durcir hors démo. Pas de HTTPS (réseau local du vaisseau).
+- Anti-bruteforce en mémoire (perdu au redémarrage, non partagé entre processus).
+- Le conteneur backend tourne en root ; pas de rotation des jetons.
+- `ruvector.db` (artefact ruflo) est suivi par git alors que `*.db` est ignoré : à retirer de l'index si non voulu.
+
+## Dette / bonus
+
+- Stock à zéro non géré (hors périmètre CDC §5). Le décrément est atomique (UPDATE conditionnel).
+- Warnings `oxlint` préexistants dans le front ; `datetime.utcnow()` déprécié côté backend.
+- Livrables : dossier technique (PDF) et présentation (PPTX) générés en français dans `docs/livrables/` ; à renommer `Workshop2026-B3-G<n>-…` avec le numéro de groupe, et à relire/compléter (noms des membres, captures d'écran). Montre ESP32 : non faite.
+- Coordination ruflo (MCP `claude-flow`) : timeout à la connexion, travail fait sans swarm.

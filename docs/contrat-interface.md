@@ -10,36 +10,29 @@ Toutes les routes sauf `POST /auth/login` et `GET /health` exigent l'en-tête :
 Authorization: Bearer <token>
 ```
 
+Sessions : le token expire au bout de 12 h (`SESSION_HEURES`) ; `POST /auth/login`
+répond `429` après 5 échecs en 1 min pour un même identifiant. Tous les
+`timestamp` sont en UTC avec suffixe `Z`. CORS limité à `CORS_ORIGINS`
+(défaut : localhost/127.0.0.1 sur les ports 80 et 5173).
+
 Le `colon` est toujours déduit du token, jamais d'un paramètre envoyé par le
 client — c'est ce qui garantit qu'un colon ne voit jamais les données d'un
 autre (cahier des charges §5).
 
-## ⚠️ Écart à trancher : la page Accueil est un chat, pas les cartes du CDC
+## Périmètre du front
 
-Le cahier des charges (`docs/cahier-des-charges.md` §2 et §4) classe le
-"chat libre avec l'assistant" hors périmètre du prototype, et décrit la page
-Accueil comme une carte d'état global + des cartes de recommandations. Le
-front actuel (`frontend/src/pages/Chat.jsx`) a déjà pivoté vers un chat façon
-ChatGPT, avec un mock 100% front (`frontend/src/mocks/chatAssistant.js`).
+L'application compte 3 pages, toutes branchées sur cette API (aucune donnée
+simulée côté front) :
 
-Comme le cahier des charges prime sur le front en cas de contradiction, ce
-backend n'expose **pas** d'endpoint de chat libre : `POST /mesures` +
-`GET /etat` couvrent le flux indispensable (import → décision → carte
-d'état + recommandations + protocole guidé si besoin). Si l'équipe confirme
-le pivot vers un chat comme page d'accueil définitive, c'est une décision
-produit qui reste à trancher avant jeudi soir et qui demandera un endpoint
-dédié (`POST /chat` ou équivalent) — non fait ici pour ne pas improviser un
-prompt système IA qui n'est pas dans le cahier des charges.
+- **Accueil** : `GET /etat` (état global, dernières constantes,
+  recommandations, protocole guidé actif) et `POST /protocole/etape-suivante` ;
+  le bandeau des alertes équipage utilise `GET /alertes` et
+  `GET /alertes/{id}/protocole`.
+- **Données** : `POST /mesures`, `GET /mesures`, `GET /etat`.
+- **Historique** : `GET /recommandations`.
 
-En attendant, `GET /etat` donne tout ce qu'il faut pour une page Accueil
-conforme au CDC (état global, dernières constantes, recommandations,
-protocole actif). `VitalData.jsx` et `History.jsx` sont branchés sur le
-backend réel (`GET /etat`, `GET /mesures`, `GET /recommandations`,
-`POST /mesures`, `POST /protocole/etape-suivante` — voir
-`frontend/src/api/client.js` et `frontend/src/api/adapters.js`).
-`Chat.jsx` reste sur son mock 100% front tant que la décision ci-dessus
-n'est pas tranchée : rien ne le relie à `POST /mesures` pour ne pas
-détourner ce point d'entrée en chat libre déguisé.
+Le chat libre est hors périmètre du prototype (cahier des charges §2) : il
+n'existe ni page de chat ni endpoint dédié.
 
 ## Authentification
 
@@ -67,7 +60,7 @@ Profil du colon connecté : `{ "id": 1, "nom": "Erik" }`.
 ### `GET /etat`
 
 État global du colon connecté (carte d'état, résumé des dernières
-constantes, recommandations, protocole guidé actif s'il y en a un).
+constantes, recommandations (plusieurs cartes, celles du dernier import : repos, respiration, hydratation…), protocole guidé actif s'il y en a un).
 
 ```json
 {
@@ -162,7 +155,7 @@ juste après) pour les récupérer.
 ### `GET /mesures?range=24h|7j`
 
 Historique des mesures du colon connecté sur la période demandée (24h par
-défaut). Vide tant qu'aucun import n'a été fait (§4 : pas d'historique
+défaut ; toute autre valeur que `24h`/`7j` renvoie `422`). Vide tant qu'aucun import n'a été fait (§4 : pas d'historique
 pré-chargé).
 
 ## Page 3 — Historique des recommandations
@@ -182,7 +175,7 @@ import de mesure + recommandation générée), plus récents d'abord.
     "reponse_ia": "...", "timestamp": "2026-09-23T10:00:00" } ]
 ```
 
-Ce n'est **pas** l'endpoint de chat libre écarté plus haut : ces entrées
+Ce n'est **pas** un endpoint de chat libre : ces entrées
 sont créées automatiquement par `POST /mesures` (une par mesure importée),
 pas par un envoi de message libre. Elles servent aussi de contexte propre
 à chaque colon, réinjecté dans le prompt IA lors de sa prochaine mesure
