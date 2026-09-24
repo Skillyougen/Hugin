@@ -390,9 +390,20 @@ def test_chat_dose_ecrite_par_le_modele_refusee(monkeypatch):
 # ---------- détresse psychologique : protocole, alerte équipage, prescription encadrée ----------
 def test_detection_mots_de_detresse():
     from detresse import mots_de_detresse
+    from detresse import niveau_detresse
     assert mots_de_detresse("Je veux en finir") and mots_de_detresse("J’ai envie de me faire du mal")
     assert mots_de_detresse("je fais une CRISE DE PANIQUE") and mots_de_detresse("Je n'en peux plus")
     assert not mots_de_detresse("J'ai mal dormi et je suis fatigué") and not mots_de_detresse("Bonjour")
+    # Niveaux : grave (alerte directe) / ambigu (le modèle tranche) / rien
+    assert niveau_detresse("je veux en finir") == "grave" and niveau_detresse("j'ai des idées de suicide") == "grave"
+    assert niveau_detresse("je fais une crise de panique") == "ambigu" and niveau_detresse("je n'en peux plus.") == "ambigu"
+    assert niveau_detresse("j'en peux plus de ce repas") is None
+    assert niveau_detresse("je n'en peux plus de ce repas") is None       # expression courante avec complément
+    assert niveau_detresse("je n'ai pas envie de mourir") == "ambigu"      # propos grave nié : au modèle de juger
+    # Expressions courantes : jamais de faux positif
+    assert niveau_detresse("je veux en finir avec ce rapport") is None and niveau_detresse("j'ai envie de mourir de rire") is None
+    assert niveau_detresse("je suis mort de fatigue") is None and niveau_detresse("je veux en finir avec la vie") == "grave"
+    assert niveau_detresse("Je ne veux pas me faire du mal") == "ambigu"
 
 
 def test_filet_de_securite_sans_modele_alerte_l_equipage():
@@ -438,7 +449,7 @@ def test_anxiolytique_apres_protocole_seulement_et_sans_confort(monkeypatch):
     assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
 
     # Vraie détresse : protocole déclenché (mots-clés), pas de médicament pendant l'alerte
-    r = client.post("/chat", json={"message": "j'ai une crise de panique"}, headers=h).json()["assistant"]["texte"]
+    r = client.post("/chat", json={"message": "je veux en finir"}, headers=h).json()["assistant"]["texte"]
     assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
 
     # Protocole terminé : le médecin peut prescrire, posologie figée, une dose débitée
@@ -457,3 +468,33 @@ def test_lignes_detresse_et_prescription_extraites():
     assert extraire_lignes("Je suis là.\nDETRESSE: OUI\nPRESCRIPTION: anxiolytique") == ("Je suis là.", "anxiolytique", True)
     assert extraire_lignes("Ok.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE") == ("Ok.", None, False)
     assert extraire_lignes("Sans lignes") == ("Sans lignes", None, False)
+
+
+def test_propos_ambigus_tranches_par_le_medecin(monkeypatch):
+    import ia
+    rep = {"t": "Ça arrive, respire.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE"}
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: rep["t"])
+    h = nouveau_colon("ambigu1")
+    # Expression courante : rien
+    client.post("/chat", json={"message": "je n'en peux plus de ce repas"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"] is None
+    # Mot ambigu mais le médecin juge que ce n'est pas une vraie détresse : pas d'alerte
+    client.post("/chat", json={"message": "je panique un peu avant la réunion"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"] is None
+    # Le médecin juge que c'est réel : alerte
+    rep["t"] = "Je reste avec toi.\nDETRESSE: OUI\nPRESCRIPTION: AUCUNE"
+    client.post("/chat", json={"message": "je fais une crise de panique, je ne respire plus"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"]["protocole_id"] == "detresse_psychologique"
+
+
+def test_propos_ambigu_sans_modele_n_alerte_pas():
+    h = nouveau_colon("ambigu2")  # Ollama coupé en test : personne pour trancher -> pas de faux positif
+    client.post("/chat", json={"message": "je fais une crise de panique"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"] is None
+    h3 = nouveau_colon("ambigu3")
+    client.post("/chat", json={"message": "je n'en peux plus de ce repas"}, headers=h3)
+    assert client.get("/etat", headers=h3).json()["protocole_actif"] is None
+    # Propos grave sans modèle : le filet de sécurité, lui, alerte
+    h4 = nouveau_colon("ambigu4")
+    client.post("/chat", json={"message": "j'ai envie de me faire du mal"}, headers=h4)
+    assert client.get("/etat", headers=h4).json()["protocole_actif"]["protocole_id"] == "detresse_psychologique"

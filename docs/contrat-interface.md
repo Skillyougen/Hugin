@@ -246,10 +246,12 @@ protocole ni l'alerte.
 **Détresse psychologique.** Le message peut déclencher le protocole guidé figé
 `detresse_psychologique` (étapes pour le colon, version « équipage » pour ceux qui
 aident) et une alerte à l'équipage au motif générique « Un colon a besoin d'un
-soutien immédiat » (rien du chat n'est transmis). Deux déclencheurs : un filet de
-mots-clés côté serveur (idées de se faire du mal, crise de panique, « je n'en peux
-plus »), indépendant du modèle, et le jugement du modèle-médecin (ligne
-`DETRESSE: OUI`), limité à un déclenchement par 12 h et par colon. L'IA distingue
+soutien immédiat » (rien du chat n'est transmis). Objectif : aucun faux positif. Deux
+déclencheurs : un filet de mots-clés côté serveur pour les seuls propos **graves** non
+niés et hors expression courante (envie de se faire du mal, « je veux en finir »…),
+indépendant du modèle ; et le jugement du modèle-médecin (ligne `DETRESSE: OUI`),
+seul juge des propos **ambigus** (« crise de panique », « je n'en peux plus »), limité
+à un déclenchement par 12 h et par colon. Sans modèle, un propos ambigu n'alerte pas. L'IA distingue
 ainsi une vraie détresse d'un simple besoin de réconfort. Le protocole n'inclut
 aucune prescription automatique ; **avec des constantes normales**, l'anxiolytique
 n'est envisageable qu'**après** ce protocole terminé (12 h), sur décision du modèle et

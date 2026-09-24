@@ -2,12 +2,16 @@
 Détresse psychologique : protocole guidé figé (protocoles/detresse_psychologique.json)
 et alerte à l'équipage (motif générique : rien de ce qui a été dit dans le chat n'est transmis).
 
-Deux déclencheurs :
-- un filet de sécurité par mots-clés sur le message du colon, côté serveur, qui ne dépend
-  pas du modèle (idées de se faire du mal, crise de panique…) : il ne peut pas être « raté » ;
-- le jugement du modèle-médecin (ligne « DETRESSE: OUI » de sa réponse), limité à un
-  déclenchement par 12 h et par colon pour ne pas inonder l'équipage.
-Les faux positifs sont préférés aux oublis.
+Objectif : aucun faux positif (une alerte à l'équipage ne doit pas être déclenchée à la légère).
+- propos GRAVES, non niés et hors expression courante (« envie de me faire du mal », « je veux
+  en finir » en fin de phrase, « envie de mourir » mais pas « mourir de rire ») : le filet de
+  mots-clés côté serveur alerte directement, sans attendre le modèle ;
+- propos AMBIGUS (« crise de panique », « je n'en peux plus » seul, propos grave nié) : seul le
+  modèle-médecin peut déclencher (ligne « DETRESSE: OUI »). SANS modèle, pas d'alerte : mieux
+  vaut ne pas alerter que d'alerter à tort ;
+- le jugement du modèle sur le contexte, sans mot-clé, limité à un déclenchement par 12 h et par
+  colon pour ne pas inonder l'équipage.
+« Je n'en peux plus de ce repas » n'est pas un mot-clé (complément) : le modèle en juge.
 """
 import re
 import unicodedata
@@ -21,11 +25,17 @@ PROTOCOLE_ID = "detresse_psychologique"
 MOTIF = "Un colon a besoin d'un soutien immédiat"
 DELAI_H = 12
 
-_MOTS_DETRESSE = re.compile(
-    r"suicid|\bme (?:faire du mal|tuer|blesser)\b|\ben finir\b|"
-    r"(?:envie|veux|voudrais|vouloir) (?:de )?mourir|plus envie de vivre|plus envie d'etre la|"
-    r"envie de disparaitre|crise de panique|attaque de panique|je panique|n'en peux plus"
+_GRAVE = re.compile(
+    r"suicid|\bme (?:faire du mal|tuer|blesser)\b|"
+    # « en finir » : seulement en fin de proposition ou « en finir avec la vie/tout » (pas « en finir avec ce rapport »)
+    r"\ben finir(?:\s+avec\s+(?:la vie|tout|moi)\b|\s*(?:[.!?,;]|$))|"
+    r"(?:envie|veux|voudrais|vouloir) (?:de )?mourir(?! de (?:rire|faim|soif|sommeil|fatigue|chaud|froid|honte|peur|envie))|"
+    r"plus envie de vivre|plus envie d'etre la|envie de disparaitre"
 )
+# « n'en peux plus » suivi d'un complément (de/du/des/d'…) est une expression courante (« de ce repas ») :
+# ce n'est un mot-clé que s'il termine la phrase ou la proposition.
+_AMBIGU = re.compile(r"crise de panique|attaque de panique|je panique|n'en peux plus(?!\s+(?:de|du|des|d')\b)")
+_NEGATION_AVANT = re.compile(r"(?:\bpas\b|\bjamais\b|\baucune?\b|\bsans\b)[^.!?]{0,25}$")
 
 
 def _normaliser(texte: str) -> str:
@@ -33,8 +43,21 @@ def _normaliser(texte: str) -> str:
     return sans_accents.lower().replace("’", "'")
 
 
+def niveau_detresse(texte: str) -> str | None:
+    """« grave » (alerte directe), « ambigu » (seul le modèle peut déclencher) ou None."""
+    t = _normaliser(texte)
+    nie = False
+    for m in _GRAVE.finditer(t):
+        if _NEGATION_AVANT.search(t[: m.start()]):
+            nie = True
+        else:
+            return "grave"
+    return "ambigu" if nie or _AMBIGU.search(t) else None
+
+
 def mots_de_detresse(texte: str) -> bool:
-    return _MOTS_DETRESSE.search(_normaliser(texte)) is not None
+    """Compatibilité : un propos grave ou ambigu est présent."""
+    return niveau_detresse(texte) is not None
 
 
 def _episodes(db: Session, colon_id: int):

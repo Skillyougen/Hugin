@@ -417,9 +417,11 @@ def envoyer_message(
 
     # Détresse psychologique : protocole guidé + alerte équipage. Le filet de mots-clés ne dépend
     # pas du modèle ; le jugement du modèle est limité à un déclenchement par 12 h.
+    niveau = detresse.niveau_detresse(texte)
     if not alerte_active and (
-        detresse.mots_de_detresse(texte) or (reponse["detresse"] and not detresse.alerte_recente(db, colon.id))
-    ):
+        niveau == "grave"  # filet de sécurité : ne dépend pas du modèle
+        or (reponse["detresse"] and not detresse.alerte_recente(db, colon.id))  # jugement du médecin
+    ):  # un propos ambigu seul n'alerte JAMAIS : sans modèle pour trancher, pas de faux positif
         detresse.declencher(db, colon)
         alerte_active = True
         if reponse["source"] == "regles":
