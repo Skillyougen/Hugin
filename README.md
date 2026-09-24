@@ -38,3 +38,10 @@ Lancement sans Docker : voir `backend/README.md` et `frontend/README.md`.
 ```bash
 cd backend && pip install -r requirements.txt pytest httpx && python -m pytest tests -q
 ```
+## Reset l'env de test 
+
+```bash
+docker compose down -v
+docker compose up -d --build
+docker compose exec ollama ollama pull llama3.2:3b
+```
