@@ -65,6 +65,7 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnl
           {derniere && p && (
             <p className="m-0 rounded-xl border border-surface-border p-3 text-sm text-text-secondary">
               <strong className="text-text-primary">{aidant ? 'Traitement à faire prendre' : 'Traitement'} :</strong>{' '}
+              {p.deja_prescrit && 'Déjà délivré récemment : pas de nouvelle dose, le stock est préservé. '}
               {p.medicament} — {p.dosage}, {p.duree}
               {p.utilise_alternative && ' (alternative, le médicament prévu n\'est pas à bord)'}
               {p.stock_restant != null && ` · il reste ${p.stock_restant} dose${p.stock_restant > 1 ? 's' : ''} à bord`}

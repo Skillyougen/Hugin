@@ -13,7 +13,7 @@ import schemas
 from ia import generer_recommandations, prechauffer_modele, repondre_chat
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
-from inventaire import appliquer_prescription
+from inventaire import appliquer_prescription, prescriptibles_par_chat, prescrire_par_chat
 from auth import (
     verifier_mot_de_passe, creer_session, get_current_colon, hash_factice,
     login_bloque, noter_echec, noter_succes,
@@ -29,6 +29,9 @@ def _migrer_colonnes() -> None:
         colonnes = {r[1] for r in conn.exec_driver_sql("PRAGMA table_info(recommandations)")}
         if "mesure_id" not in colonnes:
             conn.exec_driver_sql("ALTER TABLE recommandations ADD COLUMN mesure_id INTEGER REFERENCES mesures(id)")
+        suivis = {r[1] for r in conn.exec_driver_sql("PRAGMA table_info(suivis_protocole)")}
+        if "deja_prescrit" not in suivis:
+            conn.exec_driver_sql("ALTER TABLE suivis_protocole ADD COLUMN deja_prescrit BOOLEAN DEFAULT 0")
 
 
 _migrer_colonnes()
@@ -157,7 +160,7 @@ def recevoir_mesure(
         db.flush()  # pour obtenir alerte.id avant de créer le suivi
 
         if protocole:
-            delivree = appliquer_prescription(db, protocole.get("prescription"))
+            delivree = appliquer_prescription(db, protocole.get("prescription"), colon.id)
             db.add(models.SuiviProtocole(
                 alerte_id=alerte.id,
                 colon_id=colon.id,
@@ -169,6 +172,7 @@ def recevoir_mesure(
                 duree_delivree=delivree["duree"] if delivree else None,
                 utilise_alternative=delivree["utilise_alternative"] if delivree else False,
                 stock_restant=delivree["stock_restant"] if delivree else None,
+                deja_prescrit=delivree["deja_prescrit"] if delivree else False,
             ))
 
     db.commit()
@@ -394,8 +398,20 @@ def envoyer_message(
 
     message_user = models.MessageChat(colon_id=colon.id, role="user", texte=texte)
     db.add(message_user)
-    reponse = repondre_chat(texte, conversation, mesure, couleur, protocole_titre)
-    message_ia = models.MessageChat(colon_id=colon.id, role="assistant", texte=reponse["texte"], source=reponse["source"])
+    # L'IA est aussi le médecin de bord et peut prescrire, mais seulement parmi ce que le
+    # serveur autorise maintenant (état, délais, plafond, réserve de stock).
+    autorises, raison_refus = prescriptibles_par_chat(db, colon.id, couleur, alerte_active=protocole_titre is not None)
+    reponse = repondre_chat(texte, conversation, mesure, couleur, protocole_titre, autorises, raison_refus)
+    texte_reponse = reponse["texte"]
+    if reponse["prescription_id"]:
+        delivre, raison = prescrire_par_chat(db, colon.id, reponse["prescription_id"], couleur, protocole_titre is not None)
+        if delivre:
+            n = delivre["stock_restant"]
+            texte_reponse += (f"\n\nPrescription : {delivre['medicament']} — {delivre['dosage']}, {delivre['duree']} "
+                              f"(il reste {n} dose{'s' if n > 1 else ''} à bord).")
+        else:
+            texte_reponse += f"\n\nPrescription non délivrée : {raison}."
+    message_ia = models.MessageChat(colon_id=colon.id, role="assistant", texte=texte_reponse, source=reponse["source"])
     db.add(message_ia)
     db.commit()
     db.refresh(message_user)
@@ -429,6 +445,7 @@ def _construire_protocole_actif(
             duree=suivi.duree_delivree,
             stock_restant=suivi.stock_restant,
             utilise_alternative=suivi.utilise_alternative,
+            deja_prescrit=bool(suivi.deja_prescrit),
         )
     return schemas.ProtocoleActifOut(
         alerte_id=alerte.id,

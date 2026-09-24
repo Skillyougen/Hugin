@@ -61,6 +61,7 @@ L'API est alors sur `http://localhost:8000`. Doc interactive auto-générée :
 - `OLLAMA_TIMEOUT` (défaut `30` secondes) — au-delà, bascule en mode dégradé
 - `OLLAMA_KEEP_ALIVE` (défaut `24h`) et `OLLAMA_MAX_TOKENS` (défaut `80` par carte, texte coupé à la dernière phrase complète) — modèle gardé en mémoire, réponse plafonnée
 - `OLLAMA_WARMUP` (défaut `1`) — charge le modèle au démarrage du backend
+- Économie du stock : `PRESCRIPTION_DELAI_H` (6), `CHAT_MAX_PRESCRIPTIONS_24H` (2), `CHAT_RESERVE` (50) — voir `app/inventaire.py`. Médicaments prescriptibles par le chat : `app/catalogue.json`
 
 ## Tester rapidement sans le simulateur
 

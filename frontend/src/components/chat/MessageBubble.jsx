@@ -14,11 +14,11 @@ export default function MessageBubble({ message }) {
       )}
       <div className={`flex max-w-[78%] flex-col gap-1 ${isAssistant ? 'items-start' : 'items-end'}`}>
         {isAssistant ? (
-          <div className="rounded-2xl rounded-bl-sm border border-surface-border bg-surface-card px-3.5 py-2 text-sm leading-[1.38] text-text-primary">
+          <div className="rounded-2xl rounded-bl-sm border border-surface-border bg-surface-card px-3.5 py-2 text-sm leading-[1.38] whitespace-pre-line text-text-primary">
             {message.text}
           </div>
         ) : (
-          <div className="rounded-2xl rounded-br-sm bg-linear-to-br from-ocean-500 to-mint-500 px-3.5 py-2 text-sm leading-[1.38] text-white">
+          <div className="rounded-2xl rounded-br-sm bg-linear-to-br from-ocean-500 to-mint-500 px-3.5 py-2 text-sm leading-[1.38] whitespace-pre-line text-white">
             {message.text}
           </div>
         )}

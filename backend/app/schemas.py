@@ -86,6 +86,7 @@ class PrescriptionOut(BaseModel):
     duree: str
     stock_restant: int
     utilise_alternative: bool
+    deja_prescrit: bool = False
 
 
 class ProtocoleActifOut(BaseModel):

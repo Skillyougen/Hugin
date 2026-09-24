@@ -12,6 +12,7 @@
 ## Choix assumés
 
 - Plus aucun mock côté front. Le chat libre (c'est l'Accueil, historique dans l'onglet « Conversations » de la page Historique) est branché sur l'IA locale : c'est un ajout au-delà du CDC §2, à assumer devant le jury. Il reste soumis aux garde-fous (pas de diagnostic ni de médicament) mais un texte libre est plus difficile à cadrer que des cartes ; en mode secours il répond par un message fixe.
+- L'IA est psychologue et médecin de bord : dans le chat elle peut prescrire (catalogue figé, posologie écrite par le serveur), avec des règles d'économie du stock appliquées côté serveur (état orange/rouge, délais, 2 par 24 h, réserve de 50 doses). Seuils et catalogue illustratifs, à régler selon les stocks réels. Pas de prescription libre : le modèle ne choisit qu'un identifiant.
 - Import des constantes uniquement sur la page « Données ».
 - Alertes équipage : sondage toutes les 8 s (pas de WebSocket/SSE).
 - Contenu médical illustratif (avertissement dans le README, le dossier technique et la présentation) : l'objectif est une démo fonctionnelle, pas des procédures validées.

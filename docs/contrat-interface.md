@@ -86,7 +86,8 @@ constantes, recommandations (toujours 5 cartes, celles du dernier import : repos
     "termine": false,
     "prescription": { "medicament": "Bronchodilatateur inhalé",
                        "dosage": "2 bouffées", "duree": "toutes les 4h pendant 24h",
-                       "stock_restant": 499, "utilise_alternative": false }
+                       "stock_restant": 499, "utilise_alternative": false,
+                       "deja_prescrit": false }
   }
 }
 ```
@@ -223,7 +224,24 @@ fixe quand l'IA est indisponible ou écartée.
 ```
 
 Le prompt de l'IA reçoit les dernières constantes du colon, l'éventuelle alerte
-en cours et ses 6 derniers échanges. Garde-fous : tutoiement, ton bienveillant,
-aucun diagnostic, aucun médicament ni dose (filtre de sortie), pas de
-minimisation, renvoi au protocole guidé en cas d'alerte. Le message **ne
-modifie jamais** l'état, le protocole, l'alerte ni le stock.
+en cours et ses 6 derniers échanges. L'IA est psychologue **et** médecin de bord :
+elle peut prescrire un médicament du catalogue figé (`backend/app/catalogue.json` :
+anxiolytique léger, antipyrétique), mais elle ne fait que choisir un identifiant.
+La posologie est écrite par le serveur (« Prescription : … il reste N doses ») et
+les règles d'économie du stock sont appliquées côté serveur, sans dépendre du modèle :
+
+- état orange ou rouge requis, et aucune alerte en cours (le protocole guidé prime) ;
+- 2 prescriptions du chat par 24 h et par colon ;
+- délai minimum entre deux délivrances du même médicament (6 à 12 h) ;
+- réserve de stock (`CHAT_RESERVE`, 50 doses) gardée pour les urgences ;
+- les médicaments à risque (bêta-bloquant, bronchodilatateur, oxygène) ne sortent
+  que par les protocoles guidés.
+
+Si la prescription est refusée, la réponse l'indique (« Prescription non délivrée :
+raison »). Autres garde-fous : tutoiement, pas de diagnostic définitif, aucune dose
+ni autre nom de médicament écrits par le modèle (filtre de sortie), pas de minimisation,
+renvoi au protocole guidé en cas d'alerte. Le message ne modifie jamais l'état, le
+protocole ni l'alerte.
+
+Protocoles guidés : un même colon ne se voit pas redébiter le même médicament avant
+`PRESCRIPTION_DELAI_H` (6 h) ; la prescription porte alors `deja_prescrit: true`.

@@ -290,3 +290,98 @@ def test_deuxieme_essai_ia_avant_repli(monkeypatch):
     # Deux refus d'affilée : secours
     monkeypatch.setattr(ia, "_appel_ollama", lambda p: "Prends 2 doses de calmant.")
     assert all(c["source"] == "regles" for c in ia.generer_recommandations(115, 97, 36.8, 5))
+
+
+# ---------- IA médecin de bord : prescriptions du chat, économie du stock ----------
+ORANGE = {"frequence_cardiaque": 115, "spo2": 97, "temperature": 36.8, "sommeil_heures": 5}
+
+
+def nouveau_colon(identifiant):
+    from auth import hash_password
+    from database import SessionLocal
+    import models
+    db = SessionLocal()
+    db.add(models.Colon(nom=identifiant.capitalize(), identifiant=identifiant, mot_de_passe_hash=hash_password("mdp12345")))
+    db.commit()
+    db.close()
+    return auth(identifiant, "mdp12345")
+
+
+def stock(headers, nom):
+    return next(m["quantite"] for m in client.get("/medicaments", headers=headers).json() if m["nom"] == nom)
+
+
+def test_extraire_prescription():
+    from ia import extraire_prescription
+    assert extraire_prescription("Respire calmement.\nPRESCRIPTION: anxiolytique") == ("Respire calmement.", "anxiolytique")
+    assert extraire_prescription("Repose-toi.\nPRESCRIPTION: AUCUNE")[1] is None
+    assert extraire_prescription("Texte sans ligne finale") == ("Texte sans ligne finale", None)
+
+
+def test_protocole_rouge_repete_ne_redebite_pas():
+    h = nouveau_colon("rouge1")
+    avant = stock(h, "Bronchodilatateur inhalé")
+    client.post("/mesures", json=CRISE, headers=h)
+    p1 = client.get("/etat", headers=h).json()["protocole_actif"]["prescription"]
+    client.post("/mesures", json=CRISE, headers=h)  # 2e import critique aussitôt après
+    p2 = client.get("/etat", headers=h).json()["protocole_actif"]["prescription"]
+    assert p1["deja_prescrit"] is False and p2["deja_prescrit"] is True
+    assert stock(h, "Bronchodilatateur inhalé") == avant - 1  # une seule dose débitée
+
+
+def test_chat_prescrit_avec_parcimonie(monkeypatch):
+    import ia
+    h = nouveau_colon("psy1")
+    vus = []
+
+    def demande_anxiolytique(prompt):
+        vus.append(prompt)
+        return "Ta nuit courte te met sous tension, je te prescris un calmant.\nPRESCRIPTION: anxiolytique"
+
+    monkeypatch.setattr(ia, "_appel_ollama_chat", demande_anxiolytique)
+
+    # 1. Constantes normales : rien n'est prescriptible, même si le modèle en réclame un
+    client.post("/mesures", json=NORMAL, headers=h)
+    avant = stock(h, "Anxiolytique léger")
+    r = client.post("/chat", json={"message": "Donne-moi de l'anxiolytique"}, headers=h).json()["assistant"]["texte"]
+    assert "Aucun médicament n'est prescriptible" in vus[-1]
+    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+
+    # 2. État orange : prescription autorisée, posologie figée écrite par le serveur, stock -1
+    client.post("/mesures", json=ORANGE, headers=h)
+    r = client.post("/chat", json={"message": "Je suis très tendu"}, headers=h).json()["assistant"]["texte"]
+    assert "anxiolytique : pour" in vus[-1]
+    assert "Prescription : Anxiolytique léger — 5 mg, dose unique" in r
+    assert stock(h, "Anxiolytique léger") == avant - 1
+
+    # 3. Redemande aussitôt : délai minimum, refusé, stock inchangé
+    r = client.post("/chat", json={"message": "Encore un peu ?"}, headers=h).json()["assistant"]["texte"]
+    assert "Prescription non délivrée" in r and "délivré récemment" in r
+    assert stock(h, "Anxiolytique léger") == avant - 1
+
+
+def test_chat_ne_prescrit_pas_en_alerte_ni_sous_la_reserve(monkeypatch):
+    import ia
+    import inventaire
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: "Je te prescris un calmant.\nPRESCRIPTION: anxiolytique")
+    h = nouveau_colon("psy2")
+    client.post("/mesures", json=CRISE, headers=h)  # alerte en cours
+    avant = stock(h, "Anxiolytique léger")
+    r = client.post("/chat", json={"message": "Un calmant s'il te plaît"}, headers=h).json()["assistant"]["texte"]
+    assert "protocole guidé" in r and stock(h, "Anxiolytique léger") == avant
+
+    h2 = nouveau_colon("psy3")
+    client.post("/mesures", json=ORANGE, headers=h2)
+    monkeypatch.setattr(inventaire, "CHAT_RESERVE", 10**6)  # réserve d'urgence : rien pour le confort
+    r = client.post("/chat", json={"message": "Un calmant ?"}, headers=h2).json()["assistant"]["texte"]
+    assert "stocks sont à préserver" in r
+
+
+def test_chat_dose_ecrite_par_le_modele_refusee(monkeypatch):
+    import ia
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: "Prends 20 mg d'anxiolytique.\nPRESCRIPTION: anxiolytique")
+    h = nouveau_colon("psy4")
+    client.post("/mesures", json=ORANGE, headers=h)
+    avant = stock(h, "Anxiolytique léger")
+    r = client.post("/chat", json={"message": "Aide-moi"}, headers=h).json()["assistant"]
+    assert r["source"] == "regles" and "mg" not in r["texte"] and stock(h, "Anxiolytique léger") == avant

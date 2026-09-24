@@ -130,6 +130,8 @@ class SuiviProtocole(Base):
     duree_delivree = Column(String, nullable=True)
     utilise_alternative = Column(Boolean, default=False)
     stock_restant = Column(Integer, nullable=True)
+    # Médicament déjà délivré récemment : rien n'a été redébité (économie de stock).
+    deja_prescrit = Column(Boolean, default=False)
 
     alerte = relationship("Alerte", back_populates="suivi")
 
@@ -148,4 +150,22 @@ class MessageChat(Base):
     role = Column(String, nullable=False)  # "user" ou "assistant"
     texte = Column(String, nullable=False)
     source = Column(String, nullable=True)  # assistant : "ia" ou "regles" (réponse de secours)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class Prescription(Base):
+    """
+    Journal des médicaments délivrés à un colon (protocole guidé ou chat). Sert
+    à économiser le stock : délai minimum entre deux prises du même médicament
+    et plafond quotidien (voir inventaire.py).
+    """
+
+    __tablename__ = "prescriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    colon_id = Column(Integer, ForeignKey("colons.id"), nullable=False, index=True)
+    medicament = Column(String, nullable=False)
+    dosage = Column(String, nullable=False)
+    duree = Column(String, nullable=False)
+    origine = Column(String, nullable=False)  # "protocole" ou "chat"
     timestamp = Column(DateTime, default=datetime.utcnow)
