@@ -155,7 +155,7 @@ def _consigne(theme: str, fc: float, spo2: float, temp: float, sommeil: float) -
 
 
 # Critère du cahier des charges : chaque conseil cite au moins une constante.
-_CITE_CONSTANTE = re.compile(r"\d|cardiaque|spo|saturation|oxygène|température|sommeil|bpm", re.IGNORECASE)
+_CITE_CONSTANTE = re.compile(r"\d|cardiaque|fréquence|rythme|pouls|cœur|coeur|spo|saturation|oxygène|température|sommeil|dormi|nuit|bpm", re.IGNORECASE)
 
 
 def _post_ollama(prompt: str, system: str, max_tokens: int, temperature: float) -> str:
@@ -246,18 +246,25 @@ def generer_recommandations(
         contexte += f"- Ce que le colon décrit ressentir : {symptomes}\n"
 
     def une_carte(regle: dict) -> dict:
-        try:
-            consigne = _consigne(regle["type"], fc, spo2, temp, sommeil)
-            texte = _conseil_ia(contexte, regle["type"], consigne)
-            # Garde-fou de cohérence : après une longue nuit, pas de « compense par plus de repos ».
-            if regle["type"] == "repos" and sommeil > 10 and _CONTRADICTION_SOMMEIL.search(texte):
-                raise ValueError(f"conseil contraire aux constantes (sommeil {sommeil:.1f} h) : {texte[:160]!r}")
-            return {"texte": texte, "type": regle["type"], "source": "ia"}
-        except (requests.RequestException, ValueError, KeyError) as exc:
-            # La raison est journalisée (docker compose logs backend) : sans ça,
-            # délai, filtre et réponse vide se ressemblent côté interface.
-            logger.warning("IA écartée pour la carte %r, texte de règles : %s: %s", regle["type"], type(exc).__name__, exc)
-            return {"texte": regle["texte"], "type": regle["type"], "source": "regles"}
+        consigne = _consigne(regle["type"], fc, spo2, temp, sommeil)
+        # Un modèle de 3B est irrégulier : une réponse refusée par les garde-fous
+        # (dose, constante non citée, phrase coupée…) passe souvent au 2e essai.
+        # Pas de nouvel essai sur un délai dépassé ou une erreur réseau (déjà lent).
+        for essai in (1, 2):
+            try:
+                texte = _conseil_ia(contexte, regle["type"], consigne)
+                # Garde-fou de cohérence : après une longue nuit, pas de « compense par plus de repos ».
+                if regle["type"] == "repos" and sommeil > 10 and _CONTRADICTION_SOMMEIL.search(texte):
+                    raise ValueError(f"conseil contraire aux constantes (sommeil {sommeil:.1f} h) : {texte[:160]!r}")
+                return {"texte": texte, "type": regle["type"], "source": "ia"}
+            except ValueError as exc:
+                # La raison est journalisée (docker compose logs backend) : sans ça,
+                # délai, filtre et réponse vide se ressemblent côté interface.
+                logger.warning("IA refusée pour la carte %r (essai %d/2) : %s", regle["type"], essai, exc)
+            except (requests.RequestException, KeyError) as exc:
+                logger.warning("IA indisponible pour la carte %r : %s: %s", regle["type"], type(exc).__name__, exc)
+                break
+        return {"texte": regle["texte"], "type": regle["type"], "source": "regles"}
 
     with ThreadPoolExecutor(max_workers=len(cartes_regles)) as pool:
         return list(pool.map(une_carte, cartes_regles))

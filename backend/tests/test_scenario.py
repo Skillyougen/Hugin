@@ -271,3 +271,22 @@ def test_conseil_contradictoire_apres_longue_nuit_ecarte(monkeypatch):
     client.post("/mesures", json={**NORMAL, "sommeil_heures": 15}, headers=h)
     repos = next(c for c in client.get("/etat", headers=h).json()["recommandations"] if c["type"] == "repos")
     assert repos["source"] == "regles" and "compens" not in repos["texte"]
+
+
+def test_deuxieme_essai_ia_avant_repli(monkeypatch):
+    import ia
+    vus = set()
+
+    def capricieux(prompt):
+        # Par carte : 1er essai refusé par le filtre anti-dose, 2e essai correct.
+        if prompt not in vus:
+            vus.add(prompt)
+            return "Prends 2 doses de calmant."
+        return "Ta FC est à 115 bpm, respire lentement."
+
+    monkeypatch.setattr(ia, "_appel_ollama", capricieux)
+    cartes = ia.generer_recommandations(115, 97, 36.8, 5)
+    assert len(cartes) == 5 and all(c["source"] == "ia" for c in cartes)
+    # Deux refus d'affilée : secours
+    monkeypatch.setattr(ia, "_appel_ollama", lambda p: "Prends 2 doses de calmant.")
+    assert all(c["source"] == "regles" for c in ia.generer_recommandations(115, 97, 36.8, 5))
