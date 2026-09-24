@@ -13,8 +13,8 @@
     "Prends le traitement indiqué ci-dessous, puis reste au repos et surveille ta SpO2."
   ],
   "prescription": {
-    "medicament": "Bronchodilatateur inhalé",
-    "dosage": "2 bouffées",
+    "medicament": "Ventoline (salbutamol)",
+    "dosage": "2 bouffées de 100 µg",
     "duree": "à renouveler toutes les 4h pendant 24h",
     "alternative": {
       "medicament": "Oxygène médical (masque)",

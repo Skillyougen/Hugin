@@ -13,11 +13,11 @@
     "Prends le traitement indiqué ci-dessous et surveille ta température toutes les 30 minutes."
   ],
   "prescription": {
-    "medicament": "Vasopresseur d'urgence",
-    "dosage": "1 ampoule IM",
+    "medicament": "Dantrolène",
+    "dosage": "2,5 mg/kg IV",
     "duree": "dose unique",
     "alternative": {
-      "medicament": "Antipyrétique (paracétamol)",
+      "medicament": "Doliprane (paracétamol)",
       "dosage": "1 g",
       "duree": "toutes les 6h, maximum 4g/jour"
     }

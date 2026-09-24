@@ -34,16 +34,37 @@ for c in COLONS:
     else:
         print(f"Colon déjà présent : id={existe.id}, identifiant={existe.identifiant}")
 
-# Stock de bord. "Vasopresseur d'urgence" est volontairement absent de
+# Anciens noms génériques -> noms connus du grand public. Une base existante est migrée
+# sur place (quantités et historique conservés) avant la création du stock.
+RENOMMAGES = {
+    "Bronchodilatateur inhalé": "Ventoline (salbutamol)",
+    "Bêta-bloquant (propranolol)": "Propranolol (Avlocardyl)",
+    "Anxiolytique léger": "Atarax (hydroxyzine)",
+    "Antipyrétique (paracétamol)": "Doliprane (paracétamol)",
+}
+for ancien, nouveau in RENOMMAGES.items():
+    row_ancien = db.query(models.Medicament).filter(models.Medicament.nom == ancien).first()
+    if row_ancien is None:
+        continue
+    if db.query(models.Medicament).filter(models.Medicament.nom == nouveau).first() is None:
+        row_ancien.nom = nouveau
+    else:
+        db.delete(row_ancien)
+    db.query(models.Prescription).filter(models.Prescription.medicament == ancien).update({"medicament": nouveau})
+    db.query(models.SuiviProtocole).filter(models.SuiviProtocole.medicament_delivre == ancien).update({"medicament_delivre": nouveau})
+    print(f"Médicament renommé : {ancien} -> {nouveau}")
+db.commit()
+
+# Stock de bord (illustratif). "Dantrolène" est volontairement absent de
 # l'inventaire : le protocole hyperthermie le prévoit en premier choix, ce
-# qui force le repli sur son alternative prédéfinie (antipyrétique) — c'est
+# qui force le repli sur son alternative prédéfinie (Doliprane) — c'est
 # le cas exigé par le cahier des charges §8 pour démontrer ce parcours.
 MEDICAMENTS = [
-    ("Bronchodilatateur inhalé", 500),
+    ("Ventoline (salbutamol)", 500),
     ("Oxygène médical (masque)", 200),
-    ("Bêta-bloquant (propranolol)", 500),
-    ("Anxiolytique léger", 500),
-    ("Antipyrétique (paracétamol)", 500),
+    ("Propranolol (Avlocardyl)", 500),
+    ("Atarax (hydroxyzine)", 500),
+    ("Doliprane (paracétamol)", 500),
 ]
 
 for nom, quantite in MEDICAMENTS:

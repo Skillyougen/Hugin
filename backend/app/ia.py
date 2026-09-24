@@ -99,8 +99,10 @@ répéter, jamais pour poser un diagnostic ni changer la conduite à tenir.
 # Garde-fou de sortie (§5) : l'IA ne rédige jamais de posologie ni de nom de
 # médicament. Si sa réponse en contient (ou dérive du format), on ignore le
 # texte du modèle et on bascule sur le moteur de règles, comme en cas de panne.
-_MEDS = ["paracétamol", "ibuprofène", "aspirine", "propranolol", "morphine", "diazépam", "anxiolytique",
-         "vasopresseur", "bronchodilatateur"]
+_MEDS = ["paracétamol", "paracetamol", "doliprane", "efferalgan", "dafalgan", "ibuprofène", "ibuprofene", "aspirine",
+         "propranolol", "avlocardyl", "morphine", "tramadol", "codéine", "diazépam", "valium", "xanax", "lexomil",
+         "alprazolam", "bromazépam", "hydroxyzine", "atarax", "anxiolytique", "vasopresseur", "dantrolène",
+         "dantrolene", "bronchodilatateur", "salbutamol", "ventoline"]
 
 
 def _regex_interdit(mots_autorises: tuple[str, ...] = (), avec_prescri: bool = False) -> re.Pattern:

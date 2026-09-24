@@ -320,13 +320,13 @@ def test_extraire_prescription():
 
 def test_protocole_rouge_repete_ne_redebite_pas():
     h = nouveau_colon("rouge1")
-    avant = stock(h, "Bronchodilatateur inhalé")
+    avant = stock(h, "Ventoline (salbutamol)")
     client.post("/mesures", json=CRISE, headers=h)
     p1 = client.get("/etat", headers=h).json()["protocole_actif"]["prescription"]
     client.post("/mesures", json=CRISE, headers=h)  # 2e import critique aussitôt après
     p2 = client.get("/etat", headers=h).json()["protocole_actif"]["prescription"]
     assert p1["deja_prescrit"] is False and p2["deja_prescrit"] is True
-    assert stock(h, "Bronchodilatateur inhalé") == avant - 1  # une seule dose débitée
+    assert stock(h, "Ventoline (salbutamol)") == avant - 1  # une seule dose débitée
 
 
 def test_chat_prescrit_avec_parcimonie(monkeypatch):
@@ -342,22 +342,22 @@ def test_chat_prescrit_avec_parcimonie(monkeypatch):
 
     # 1. Constantes normales : rien n'est prescriptible, même si le modèle en réclame un
     client.post("/mesures", json=NORMAL, headers=h)
-    avant = stock(h, "Anxiolytique léger")
+    avant = stock(h, "Atarax (hydroxyzine)")
     r = client.post("/chat", json={"message": "Donne-moi de l'anxiolytique"}, headers=h).json()["assistant"]["texte"]
     assert "Aucun médicament n'est prescriptible" in vus[-1]
-    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+    assert "Prescription non délivrée" in r and stock(h, "Atarax (hydroxyzine)") == avant
 
     # 2. État orange : prescription autorisée, posologie figée écrite par le serveur, stock -1
     client.post("/mesures", json=ORANGE, headers=h)
     r = client.post("/chat", json={"message": "Je suis très tendu"}, headers=h).json()["assistant"]["texte"]
     assert "anxiolytique : pour" in vus[-1]
-    assert "Prescription : Anxiolytique léger — 5 mg, dose unique" in r
-    assert stock(h, "Anxiolytique léger") == avant - 1
+    assert "Prescription : Atarax (hydroxyzine) — 25 mg, dose unique" in r
+    assert stock(h, "Atarax (hydroxyzine)") == avant - 1
 
     # 3. Redemande aussitôt : délai minimum, refusé, stock inchangé
     r = client.post("/chat", json={"message": "Encore un peu ?"}, headers=h).json()["assistant"]["texte"]
     assert "Prescription non délivrée" in r and "délivré récemment" in r
-    assert stock(h, "Anxiolytique léger") == avant - 1
+    assert stock(h, "Atarax (hydroxyzine)") == avant - 1
 
 
 def test_chat_ne_prescrit_pas_en_alerte_ni_sous_la_reserve(monkeypatch):
@@ -366,9 +366,9 @@ def test_chat_ne_prescrit_pas_en_alerte_ni_sous_la_reserve(monkeypatch):
     monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: "Je te prescris un calmant.\nPRESCRIPTION: anxiolytique")
     h = nouveau_colon("psy2")
     client.post("/mesures", json=CRISE, headers=h)  # alerte en cours
-    avant = stock(h, "Anxiolytique léger")
+    avant = stock(h, "Atarax (hydroxyzine)")
     r = client.post("/chat", json={"message": "Un calmant s'il te plaît"}, headers=h).json()["assistant"]["texte"]
-    assert "protocole guidé" in r and stock(h, "Anxiolytique léger") == avant
+    assert "protocole guidé" in r and stock(h, "Atarax (hydroxyzine)") == avant
 
     h2 = nouveau_colon("psy3")
     client.post("/mesures", json=ORANGE, headers=h2)
@@ -382,9 +382,9 @@ def test_chat_dose_ecrite_par_le_modele_refusee(monkeypatch):
     monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: "Prends 20 mg d'anxiolytique.\nPRESCRIPTION: anxiolytique")
     h = nouveau_colon("psy4")
     client.post("/mesures", json=ORANGE, headers=h)
-    avant = stock(h, "Anxiolytique léger")
+    avant = stock(h, "Atarax (hydroxyzine)")
     r = client.post("/chat", json={"message": "Aide-moi"}, headers=h).json()["assistant"]
-    assert r["source"] == "regles" and "mg" not in r["texte"] and stock(h, "Anxiolytique léger") == avant
+    assert r["source"] == "regles" and "mg" not in r["texte"] and stock(h, "Atarax (hydroxyzine)") == avant
 
 
 # ---------- détresse psychologique : protocole, alerte équipage, prescription encadrée ----------
@@ -442,25 +442,25 @@ def test_anxiolytique_apres_protocole_seulement_et_sans_confort(monkeypatch):
     monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: demande)
     h = nouveau_colon("detresse3")
     client.post("/mesures", json=NORMAL, headers=h)  # constantes normales
-    avant = stock(h, "Anxiolytique léger")
+    avant = stock(h, "Atarax (hydroxyzine)")
 
     # Confort : aucun protocole de détresse terminé -> refusé même si le modèle le demande
     r = client.post("/chat", json={"message": "Je voudrais un calmant pour être tranquille"}, headers=h).json()["assistant"]["texte"]
-    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+    assert "Prescription non délivrée" in r and stock(h, "Atarax (hydroxyzine)") == avant
 
     # Vraie détresse : protocole déclenché (mots-clés), pas de médicament pendant l'alerte
     r = client.post("/chat", json={"message": "je veux en finir"}, headers=h).json()["assistant"]["texte"]
-    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+    assert "Prescription non délivrée" in r and stock(h, "Atarax (hydroxyzine)") == avant
 
     # Protocole terminé : le médecin peut prescrire, posologie figée, une dose débitée
     for _ in range(5):
         client.post("/protocole/etape-suivante", headers=h)
     r = client.post("/chat", json={"message": "Je suis toujours en détresse, aide-moi"}, headers=h).json()["assistant"]["texte"]
-    assert "Prescription : Anxiolytique léger — 5 mg, dose unique" in r
-    assert stock(h, "Anxiolytique léger") == avant - 1
+    assert "Prescription : Atarax (hydroxyzine) — 25 mg, dose unique" in r
+    assert stock(h, "Atarax (hydroxyzine)") == avant - 1
     # Redemande aussitôt : délai minimum
     r = client.post("/chat", json={"message": "Encore un calmant"}, headers=h).json()["assistant"]["texte"]
-    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant - 1
+    assert "Prescription non délivrée" in r and stock(h, "Atarax (hydroxyzine)") == avant - 1
 
 
 def test_lignes_detresse_et_prescription_extraites():
@@ -498,3 +498,30 @@ def test_propos_ambigu_sans_modele_n_alerte_pas():
     h4 = nouveau_colon("ambigu4")
     client.post("/chat", json={"message": "j'ai envie de me faire du mal"}, headers=h4)
     assert client.get("/etat", headers=h4).json()["protocole_actif"]["protocole_id"] == "detresse_psychologique"
+
+
+def test_noms_grand_public_et_migration_des_anciens_noms():
+    import models
+    from database import SessionLocal
+    noms = {m["nom"] for m in client.get("/medicaments", headers=auth("erik", "erik1234")).json()}
+    assert noms == {"Ventoline (salbutamol)", "Oxygène médical (masque)", "Propranolol (Avlocardyl)",
+                    "Atarax (hydroxyzine)", "Doliprane (paracétamol)"}
+    # Le Dantrolène (1er choix du protocole température) est absent : l'alternative Doliprane est prescrite
+    h = nouveau_colon("noms1")
+    client.post("/mesures", json={"frequence_cardiaque": 100, "spo2": 98, "temperature": 39.5, "sommeil_heures": 7}, headers=h)
+    p = client.get("/etat", headers=h).json()["protocole_actif"]["prescription"]
+    assert p["medicament"] == "Doliprane (paracétamol)" and p["utilise_alternative"] is True
+    # Base ancienne : renommage sur place, quantité conservée
+    db = SessionLocal()
+    db.add(models.Medicament(nom="Bêta-bloquant (propranolol)", quantite=123))
+    db.query(models.Medicament).filter(models.Medicament.nom == "Propranolol (Avlocardyl)").delete()
+    db.commit()
+    db.close()
+    import subprocess, sys, os
+    subprocess.run([sys.executable, "seed.py"], cwd=os.path.join(os.path.dirname(__file__), "..", "app"), check=True,
+                   env={**os.environ}, capture_output=True)
+    db = SessionLocal()
+    ligne = db.query(models.Medicament).filter(models.Medicament.nom == "Propranolol (Avlocardyl)").first()
+    ancien = db.query(models.Medicament).filter(models.Medicament.nom == "Bêta-bloquant (propranolol)").first()
+    db.close()
+    assert ligne is not None and ligne.quantite == 123 and ancien is None

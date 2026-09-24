@@ -84,8 +84,8 @@ constantes, recommandations (toujours 5 cartes, celles du dernier import : repos
     "etapes": ["Arrête toute activité...", "..."],
     "etape_courante": 0,
     "termine": false,
-    "prescription": { "medicament": "Bronchodilatateur inhalé",
-                       "dosage": "2 bouffées", "duree": "toutes les 4h pendant 24h",
+    "prescription": { "medicament": "Ventoline (salbutamol)",
+                       "dosage": "2 bouffées de 100 µg", "duree": "toutes les 4h pendant 24h",
                        "stock_restant": 499, "utilise_alternative": false,
                        "deja_prescrit": false }
   }
@@ -196,7 +196,7 @@ restent basés uniquement sur les seuils (même garde-fou que `symptomes`).
 
 ### `GET /medicaments`
 
-`[ { "id": 1, "nom": "Bronchodilatateur inhalé", "quantite": 499 }, ... ]`
+`[ { "id": 1, "nom": "Ventoline (salbutamol)", "quantite": 499 }, ... ]`
 — utile pour afficher/vérifier le compteur de stock en démo.
 
 ## Assistant (chat libre)
@@ -226,7 +226,7 @@ fixe quand l'IA est indisponible ou écartée.
 Le prompt de l'IA reçoit les dernières constantes du colon, l'éventuelle alerte
 en cours et ses 6 derniers échanges. L'IA est psychologue **et** médecin de bord :
 elle peut prescrire un médicament du catalogue figé (`backend/app/catalogue.json` :
-anxiolytique léger, antipyrétique), mais elle ne fait que choisir un identifiant.
+Atarax (hydroxyzine), Doliprane (paracétamol)), mais elle ne fait que choisir un identifiant.
 La posologie est écrite par le serveur (« Prescription : … il reste N doses ») et
 les règles d'économie du stock sont appliquées côté serveur, sans dépendre du modèle :
 
@@ -234,7 +234,7 @@ les règles d'économie du stock sont appliquées côté serveur, sans dépendre
 - 2 prescriptions du chat par 24 h et par colon ;
 - délai minimum entre deux délivrances du même médicament (6 à 12 h) ;
 - réserve de stock (`CHAT_RESERVE`, 50 doses) gardée pour les urgences ;
-- les médicaments à risque (bêta-bloquant, bronchodilatateur, oxygène) ne sortent
+- les médicaments à risque (Propranolol, Ventoline, oxygène) ne sortent
   que par les protocoles guidés.
 
 Si la prescription est refusée, la réponse l'indique (« Prescription non délivrée :

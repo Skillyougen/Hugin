@@ -13,12 +13,12 @@
     "Prends le traitement indiqué ci-dessous, puis reste assis·e 15 minutes avant de reprendre une activité légère."
   ],
   "prescription": {
-    "medicament": "Bêta-bloquant (propranolol)",
+    "medicament": "Propranolol (Avlocardyl)",
     "dosage": "10 mg",
     "duree": "dose unique, ne pas renouveler sans avis de l'équipage",
     "alternative": {
-      "medicament": "Anxiolytique léger",
-      "dosage": "5 mg",
+      "medicament": "Atarax (hydroxyzine)",
+      "dosage": "25 mg",
       "duree": "dose unique"
     }
   },

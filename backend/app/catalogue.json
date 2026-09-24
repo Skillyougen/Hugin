@@ -1,26 +1,29 @@
 [
   {
     "id": "anxiolytique",
-    "medicament": "Anxiolytique léger",
+    "medicament": "Atarax (hydroxyzine)",
     "indication": "anxiété ou stress intense, agitation, tension nerveuse qui empêche de dormir",
-    "dosage": "5 mg",
+    "dosage": "25 mg",
     "duree": "dose unique",
     "delai_min_h": 12,
     "via_chat": true,
     "mots_autorises": [
+      "atarax",
+      "hydroxyzine",
       "anxiolytique",
       "anxiolytiques"
     ]
   },
   {
     "id": "antipyretique",
-    "medicament": "Antipyrétique (paracétamol)",
+    "medicament": "Doliprane (paracétamol)",
     "indication": "fièvre ou température élevée, courbatures, mal de tête",
     "dosage": "1 g",
     "duree": "toutes les 6h, maximum 4 g par jour",
     "delai_min_h": 6,
     "via_chat": true,
     "mots_autorises": [
+      "doliprane",
       "paracétamol",
       "antipyrétique"
     ]
