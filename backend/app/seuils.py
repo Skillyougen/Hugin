@@ -30,10 +30,13 @@ def niveau_temperature(temp: float) -> int:
     return 0
 
 
+SOMMEIL_LONG = 10  # au-delà, sommeil anormalement long : à surveiller (orange), pas un manque
+
+
 def niveau_sommeil(heures: float) -> int:
     if heures < 4:
         return 2
-    if heures < 6:
+    if heures < 6 or heures > SOMMEIL_LONG:
         return 1
     return 0
 
@@ -67,8 +70,11 @@ def recommandations_regles(fc: float, spo2: float, temp: float, sommeil: float) 
     # (type, constante concernée hors norme ?, texte si hors norme, texte de fond)
     cartes = [
         ("repos", details["sommeil"] >= 1,
-         f"Ton sommeil de la nuit a été de {sommeil:.1f}h, en dessous du seuil recommandé. "
-         f"Essaie de prévoir un temps de repos supplémentaire aujourd'hui.",
+         (f"Tu as dormi {sommeil:.1f}h cette nuit, c'est long. Garde un rythme de sommeil régulier "
+          f"et bouge un peu aujourd'hui plutôt que de te recoucher.")
+         if sommeil > SOMMEIL_LONG else
+         (f"Ton sommeil de la nuit a été de {sommeil:.1f}h, en dessous du seuil recommandé. "
+          f"Essaie de prévoir un temps de repos supplémentaire aujourd'hui."),
          f"Tu as dormi {sommeil:.1f}h cette nuit : garde un rythme de repos régulier ce soir."),
         ("respiration", details["frequence_cardiaque"] >= 1,
          f"Ta fréquence cardiaque est actuellement à {fc:.0f} bpm, hors de ta normale. "

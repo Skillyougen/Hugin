@@ -28,6 +28,8 @@ Règles strictes :
 sans liste, sans titre, sans émoji.
 - AUCUN diagnostic médical. AUCUN médicament, aucune dose, aucune instruction de soin : les gestes de \
 premiers secours viennent uniquement du protocole guidé de l'application, jamais de toi.
+- Ton conseil ne contredit JAMAIS les constantes du colon : quand une consigne t'est donnée pour le \
+thème, tu la suis à la lettre.
 - Tu ne minimises jamais la situation (n'écris jamais « ce n'est pas grave »).
 - Si une alerte est en cours, dis d'abord de suivre le protocole guidé affiché sur l'accueil, étape par étape.
 - Si le colon évoque l'envie de se faire du mal ou une détresse grave, invite-le à prévenir tout de suite \
@@ -118,6 +120,40 @@ THEMES = {
     "exercice": "l'activité physique (un effort léger, ou éviter les efforts si la situation l'exige)",
     "social": "garder le contact avec les autres membres de l'équipage",
 }
+_CONTRADICTION_SOMMEIL = re.compile(r"compens|supplémentaire|davantage|plus de repos|te reposer plus|te recoucher", re.IGNORECASE)
+
+
+def _consigne(theme: str, fc: float, spo2: float, temp: float, sommeil: float) -> str:
+    """
+    Sens du conseil, décidé par les règles (pas par le modèle) : sans elle, un 3B
+    peut contredire les constantes (ex. « compense ta nuit de 15 h par du repos »).
+    """
+    if theme == "repos":
+        if sommeil < 6:
+            return f"Le colon a peu dormi ({sommeil:.1f} h) : conseille du repos supplémentaire."
+        if sommeil > 10:
+            return (f"Le colon a dormi très longtemps ({sommeil:.1f} h) : NE lui conseille PAS de se reposer "
+                    f"davantage ni de compenser ; conseille un rythme de sommeil régulier et de bouger dans la journée.")
+        return "Son sommeil est correct : conseille de garder un rythme de repos régulier."
+    if theme == "respiration":
+        if fc > 100:
+            return "Sa fréquence cardiaque est élevée : conseille un exercice de respiration lente pour l'apaiser."
+        if fc < 50:
+            return "Sa fréquence cardiaque est basse : conseille de rester assis au calme et d'en parler à l'équipage si besoin."
+        return "Sa fréquence cardiaque est normale : conseille un court exercice de respiration pour se détendre."
+    if theme == "exercice":
+        if spo2 < 95:
+            return "Sa saturation en oxygène est basse : conseille d'éviter les efforts intenses et de le signaler si cela persiste."
+        return "Conseille une activité physique légère (marche, étirements)."
+    if theme == "hydratation":
+        if temp > 37.5:
+            return "Sa température est élevée : conseille de boire régulièrement et de rester dans un endroit frais."
+        if temp < 36.1:
+            return "Sa température est basse : conseille de se couvrir et de boire une boisson chaude."
+        return "Conseille de boire de l'eau régulièrement."
+    return "Conseille de garder le contact avec les autres membres de l'équipage."
+
+
 # Critère du cahier des charges : chaque conseil cite au moins une constante.
 _CITE_CONSTANTE = re.compile(r"\d|cardiaque|spo|saturation|oxygène|température|sommeil|bpm", re.IGNORECASE)
 
@@ -149,11 +185,12 @@ def _appel_ollama_chat(prompt: str) -> str:
     return _post_ollama(prompt, CHAT_SYSTEM_PROMPT, OLLAMA_CHAT_MAX_TOKENS, 0.6)
 
 
-def _conseil_ia(contexte: str, theme: str) -> str:
+def _conseil_ia(contexte: str, theme: str, consigne: str = "") -> str:
     """Texte validé d'un conseil, ou ValueError/RequestException (l'appelant retombe sur les règles)."""
     prompt = (
         f"{contexte}\n"
         f"Écris UN conseil sur ce thème uniquement : {THEMES[theme]}. "
+        f"{('Consigne, à respecter absolument : ' + consigne + ' ') if consigne else ''}"
         f"1 ou 2 phrases courtes et simples, sans liste, qui citent au moins une de mes constantes."
     )
     brut = _appel_ollama(prompt)
@@ -210,7 +247,12 @@ def generer_recommandations(
 
     def une_carte(regle: dict) -> dict:
         try:
-            return {"texte": _conseil_ia(contexte, regle["type"]), "type": regle["type"], "source": "ia"}
+            consigne = _consigne(regle["type"], fc, spo2, temp, sommeil)
+            texte = _conseil_ia(contexte, regle["type"], consigne)
+            # Garde-fou de cohérence : après une longue nuit, pas de « compense par plus de repos ».
+            if regle["type"] == "repos" and sommeil > 10 and _CONTRADICTION_SOMMEIL.search(texte):
+                raise ValueError(f"conseil contraire aux constantes (sommeil {sommeil:.1f} h) : {texte[:160]!r}")
+            return {"texte": texte, "type": regle["type"], "source": "ia"}
         except (requests.RequestException, ValueError, KeyError) as exc:
             # La raison est journalisée (docker compose logs backend) : sans ça,
             # délai, filtre et réponse vide se ressemblent côté interface.

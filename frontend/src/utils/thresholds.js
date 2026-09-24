@@ -6,13 +6,13 @@
  * orange alors que le backend compte la valeur normale (ou l'inverse).
  * Valeurs illustratives de prototype, sans valeur médicale.
  *   FC : vert 50-100, orange 40-120 · SpO2 : vert >= 95, orange >= 90
- *   Température : vert 36,1-37,5, orange 35,5-38,5 · Sommeil : vert >= 6 h, orange >= 4 h
+ *   Température : vert 36,1-37,5, orange 35,5-38,5 · Sommeil : vert 6-10 h, orange 4-6 h ou > 10 h
  */
 export const VITALS = {
   heartRate: { key: 'heartRate', label: 'Fréquence cardiaque', shortLabel: 'FC', unit: 'bpm', icon: 'HeartPulse', normal: [50, 100], warning: [40, 120] },
   spo2: { key: 'spo2', label: 'Saturation en oxygène', shortLabel: 'SpO₂', unit: '%', icon: 'Wind', normal: [95, 100], warning: [90, 100] },
   temperature: { key: 'temperature', label: 'Température corporelle', shortLabel: 'Température', unit: '°C', icon: 'Thermometer', normal: [36.1, 37.5], warning: [35.5, 38.5] },
-  sleepHours: { key: 'sleepHours', label: 'Sommeil (dernière nuit)', shortLabel: 'Sommeil', unit: 'h', icon: 'Moon', normal: [6, 24], warning: [4, 24] },
+  sleepHours: { key: 'sleepHours', label: 'Sommeil (dernière nuit)', shortLabel: 'Sommeil', unit: 'h', icon: 'Moon', normal: [6, 10], warning: [4, 24] },
 }
 
 /** 'good' | 'warning' | 'critical' pour une valeur donnée d'une constante. */
