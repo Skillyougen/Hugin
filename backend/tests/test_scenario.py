@@ -525,3 +525,31 @@ def test_noms_grand_public_et_migration_des_anciens_noms():
     ancien = db.query(models.Medicament).filter(models.Medicament.nom == "Bêta-bloquant (propranolol)").first()
     db.close()
     assert ligne is not None and ligne.quantite == 123 and ancien is None
+
+
+def test_l_ia_ne_promet_pas_un_psychologue_inexistant(monkeypatch):
+    import ia
+    h = nouveau_colon("horsscenario")
+    reponses = iter([
+        # 1er essai : le texte reproduit par l'utilisateur (psychologue inexistant, appel impossible)
+        "Je vais appeler le psychologue pour te voir. Notre psychologue est disponible pour discuter.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE",
+        # 2e essai correct
+        "Je suis là pour t'écouter. Dis-moi ce qui te pèse, et n'hésite pas à parler à un membre de l'équipage.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE",
+    ])
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: next(reponses))
+    r = client.post("/chat", json={"message": "Je vais mal"}, headers=h).json()["assistant"]
+    assert r["source"] == "ia" and "psychologue" not in r["texte"] and "appeler" not in r["texte"]
+    # Deux refus d'affilée : réponse de secours, jamais la promesse impossible
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: "Je préviens le médecin de bord tout de suite.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE")
+    r = client.post("/chat", json={"message": "Encore"}, headers=h).json()["assistant"]
+    assert r["source"] == "regles" and "médecin" not in r["texte"]
+
+
+def test_hors_scenario_regex():
+    from ia import _HORS_SCENARIO
+    for mauvais in ["Je vais appeler le psychologue.", "Tu verras notre psychologue.", "Consulte un médecin.",
+                    "Je préviens l'équipage.", "J'appelle un membre de l'équipage.", "Un professionnel de santé t'aidera."]:
+        assert _HORS_SCENARIO.search(mauvais), mauvais
+    for bon in ["Je suis là pour t'écouter.", "Parle à un membre de l'équipage.", "Je te conseille de prévenir un ami.",
+                "Ta FC est à 115 bpm, respire lentement."]:
+        assert not _HORS_SCENARIO.search(bon), bon
