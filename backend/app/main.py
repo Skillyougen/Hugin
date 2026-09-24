@@ -7,10 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from database import engine, get_db, Base
+from database import engine, get_db, Base, SessionLocal
 import models
 import schemas
-from ia import generer_recommandations, prechauffer_modele, repondre_chat
+from ia import couper_dialogue, generer_recommandations, nettoyer_pour_contexte, prechauffer_modele, repondre_chat
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
 import detresse
@@ -36,6 +36,23 @@ def _migrer_colonnes() -> None:
 
 
 _migrer_colonnes()
+
+
+def _nettoyer_chat() -> None:
+    """Anciens messages de l'assistant contenant un dialogue inventé (« Colon : … ») : on ne garde que son tour."""
+    with SessionLocal() as db:
+        pollues = db.query(models.MessageChat).filter(
+            models.MessageChat.role == "assistant",
+            (models.MessageChat.texte.like("%Colon :%")) | (models.MessageChat.texte.like("%Colon:%")),
+        ).all()
+        for msg in pollues:
+            propre = couper_dialogue(msg.texte).strip()
+            if propre:
+                msg.texte = propre
+        db.commit()
+
+
+_nettoyer_chat()
 
 if os.getenv("OLLAMA_WARMUP", "1") == "1":
     threading.Thread(target=prechauffer_modele, daemon=True).start()
@@ -384,7 +401,7 @@ def envoyer_message(
         .limit(6)
         .all()
     )
-    conversation = [(msg.role, msg.texte) for msg in reversed(precedents)]
+    conversation = [(msg.role, nettoyer_pour_contexte(msg.role, msg.texte)) for msg in reversed(precedents)]
 
     derniere = (
         db.query(models.Mesure)

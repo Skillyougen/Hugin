@@ -258,12 +258,38 @@ def _appel_ollama(prompt: str) -> str:
     return _post_ollama(prompt, SYSTEM_PROMPT, OLLAMA_MAX_TOKENS, 0.4)
 
 
-def _appel_ollama_chat(prompt: str) -> str:
+class RequeteChat(str):
+    """
+    Requête du chat : se lit comme un texte (contexte + « Colon : … »), pour les logs et les tests, mais
+    porte aussi la conversation structurée (`contexte`, `messages` aux rôles user/assistant) que l'appel réel
+    envoie à Ollama en format chat : un petit modèle confond bien moins les rôles qu'avec un dialogue collé
+    dans un seul texte (où il écrivait lui-même le tour du colon).
+    """
+
+    contexte: str = ""
+    messages: list[dict] = []
+
+
+_STOP_DIALOGUE = ["\nColon :", "\nColon:", "\nHuginn :", "\nHuginn:"]
+
+
+def _appel_ollama_chat(requete) -> str:
     """Un appel « conversation » : plus long qu'une carte, un peu plus libre."""
-    # Le prompt est un dialogue « Colon : … / Huginn : » : sans arrêt, le modèle continue en écrivant
-    # lui-même le message du colon puis sa propre réponse suivante.
-    return _post_ollama(prompt, CHAT_SYSTEM_PROMPT, OLLAMA_CHAT_MAX_TOKENS, 0.6,
-                        stop=["\nColon :", "\nColon:", "\nHuginn :", "\nHuginn:"])
+    if isinstance(requete, RequeteChat) and requete.messages:
+        response = requests.post(
+            OLLAMA_URL.replace("/api/generate", "/api/chat"),
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": [{"role": "system", "content": f"{CHAT_SYSTEM_PROMPT}\n{requete.contexte}"}, *requete.messages],
+                "stream": False,
+                "keep_alive": OLLAMA_KEEP_ALIVE,
+                "options": {"num_predict": OLLAMA_CHAT_MAX_TOKENS, "temperature": 0.6, "stop": _STOP_DIALOGUE},
+            },
+            timeout=OLLAMA_TIMEOUT,
+        )
+        response.raise_for_status()
+        return response.json().get("message", {}).get("content", "")
+    return _post_ollama(str(requete), CHAT_SYSTEM_PROMPT, OLLAMA_CHAT_MAX_TOKENS, 0.6, stop=_STOP_DIALOGUE)
 
 
 def _conseil_ia(contexte: str, theme: str, consigne: str = "") -> str:
@@ -393,6 +419,17 @@ def couper_dialogue(brut: str) -> str:
     return texte[: m.start()] if m else texte
 
 
+def nettoyer_pour_contexte(role: str, texte: str) -> str:
+    """
+    Version d'un ancien message à renvoyer au modèle comme contexte : sans dialogue inventé (anciens
+    enregistrements pollués) ni lignes ajoutées par le serveur (prescription, alerte) que le modèle imiterait.
+    """
+    if role != "assistant":
+        return texte
+    texte = couper_dialogue(texte)
+    return re.split(r"\n\n(?:Prescription|Je préviens l'équipage)", texte)[0].strip()
+
+
 def extraire_lignes(brut: str) -> tuple[str, str | None, bool]:
     """Sépare le texte des lignes « DETRESSE: OUI|NON » et « PRESCRIPTION: id|AUCUNE »."""
     presc = _LIGNE_PRESCRIPTION.findall(brut)
@@ -428,7 +465,7 @@ def repondre_chat(
     (`detresse` : le modèle-médecin juge qu'il s'agit d'une vraie détresse, pas de confort).
     """
     autorises = autorises or []
-    contexte = "Contexte (non visible du colon) :\n"
+    contexte = ("Contexte privé (ne le récite pas ; n'en parle que si c'est utile et si le colon y touche) :\n")
     if mesure:
         contexte += (
             f"- Dernières constantes : FC {mesure['frequence_cardiaque']:.0f} bpm, SpO2 {mesure['spo2']:.0f}%, "
@@ -439,7 +476,8 @@ def repondre_chat(
     if protocole_titre:
         contexte += f"- ALERTE EN COURS : protocole guidé « {protocole_titre} » actif.\n"
     if detresse_terminee:
-        contexte += "- Le colon vient de terminer le protocole guidé de détresse psychologique.\n"
+        contexte += ("- Arrière-plan : le colon a terminé récemment un protocole guidé de détresse. "
+                     "Ne le mentionne PAS, sauf s'il en parle lui-même.\n")
     if autorises:
         contexte += "- Médicaments que tu peux prescrire maintenant (catalogue, dernier recours) :\n"
         contexte += "".join(f"  * {e['id']} : pour {e['indication']}\n" for e in autorises)
@@ -448,7 +486,12 @@ def repondre_chat(
     dialogue = "".join(
         f"{'Colon' if role == 'user' else 'Huginn'} : {texte}\n" for role, texte in conversation
     )
-    prompt = f"{contexte}\nConversation :\n{dialogue}Colon : {message}\nHuginn :"
+    prompt = RequeteChat(f"{contexte}\nConversation :\n{dialogue}Colon : {message}\nHuginn :")
+    prompt.contexte = contexte
+    prompt.messages = [
+        *({"role": "user" if role == "user" else "assistant", "content": texte} for role, texte in conversation),
+        {"role": "user", "content": message},
+    ]
     def une_reponse() -> dict:
         brut = _appel_ollama_chat(prompt)
         corps, med_id, detresse = extraire_lignes(couper_dialogue(brut))

@@ -636,3 +636,54 @@ def test_pas_de_contact_avec_la_terre():
     for mauvais in ["Appelle ta famille pour en parler.", "Ta famille a une idée de ce que tu vis ?", "Contacte tes proches."]:
         assert _HORS_SCENARIO.search(mauvais), mauvais
     assert not _HORS_SCENARIO.search("Ta famille te manque, raconte-moi un souvenir avec elle.")
+
+
+def test_historique_pollue_nettoye_et_non_renvoye_au_modele(monkeypatch):
+    import ia
+    import models
+    from database import SessionLocal
+    h = nouveau_colon("pollue1")
+    colon_id = client.get("/colons/moi", headers=h).json()["id"]
+    db = SessionLocal()
+    db.add(models.MessageChat(colon_id=colon_id, role="user", texte="Bonjour"))
+    db.add(models.MessageChat(colon_id=colon_id, role="assistant", texte=TEXTE_RAPPORTE, source="ia"))
+    db.commit()
+    db.close()
+    vus = []
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda r: vus.append(r) or "Je t'écoute, raconte-moi.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE")
+    client.post("/chat", json={"message": "Ma famille me manque"}, headers=h)
+    # Le faux dialogue stocké n'est pas renvoyé au modèle comme contexte
+    assert "famille a une idée" not in vus[0] and "elle me manque\n\nHuginn" not in vus[0]
+    assert [m["role"] for m in vus[0].messages] == ["user", "assistant", "user"]
+    assert "Colon :" not in vus[0].messages[1]["content"]
+    # Nettoyage au démarrage des anciens enregistrements
+    import main
+    db = SessionLocal()
+    db.add(models.MessageChat(colon_id=colon_id, role="assistant", texte=TEXTE_RAPPORTE, source="ia"))
+    db.commit()
+    db.close()
+    main._nettoyer_chat()
+    db = SessionLocal()
+    restants = db.query(models.MessageChat).filter(models.MessageChat.colon_id == colon_id, models.MessageChat.texte.like("%Colon :%")).count()
+    db.close()
+    assert restants == 0
+
+
+def test_appel_chat_format_conversation(monkeypatch):
+    import ia
+    envoye = {}
+
+    class Rep:
+        def raise_for_status(self): pass
+        def json(self): return {"message": {"role": "assistant", "content": "Je t'écoute."}}
+
+    monkeypatch.setattr(ia, "OLLAMA_URL", "http://ollama:11434/api/generate")  # URL réelle de docker-compose
+    monkeypatch.setattr(ia.requests, "post", lambda url, json=None, timeout=None: envoye.update(json, url=url) or Rep())
+    requete = ia.RequeteChat("texte lisible")
+    requete.contexte = "Contexte privé"
+    requete.messages = [{"role": "user", "content": "Salut"}, {"role": "assistant", "content": "Bonjour"}, {"role": "user", "content": "Ça va mal"}]
+    assert ia._appel_ollama_chat(requete) == "Je t'écoute."
+    assert envoye["url"].endswith("/api/chat")
+    assert envoye["messages"][0]["role"] == "system" and "Contexte privé" in envoye["messages"][0]["content"]
+    assert [m["role"] for m in envoye["messages"][1:]] == ["user", "assistant", "user"]
+    assert "\nColon :" in envoye["options"]["stop"]
