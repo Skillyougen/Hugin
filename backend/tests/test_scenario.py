@@ -583,3 +583,56 @@ def test_ordonnance_visible_a_l_etape_du_traitement():
     p = client.get("/etat", headers=h).json()["protocole_actif"]
     assert p["etape_traitement"] == 3 and p["prescription"]["medicament"] == "Ventoline (salbutamol)"
     assert len(p["etapes"]) == 6 and "10 minutes" in p["etapes"][4]
+
+
+TEXTE_RAPPORTE = (
+    "Je comprends que tu te sens encore un peu déconnecté. Je vais continuer à t'écouter sans jugement.\n\n"
+    "Colon : sa fait longtemp que j'ai pas vu ma famille, elle me manque\n\n"
+    "Huginn : Il est normal de ressentir de la tristesse. Penses-tu que ta famille a une idée de ce que tu passes ?"
+)
+
+
+def test_couper_dialogue_invente():
+    from ia import couper_dialogue
+    coupe = couper_dialogue(TEXTE_RAPPORTE)
+    assert "Colon" not in coupe and "Huginn" not in coupe and "famille" not in coupe
+    assert coupe.strip().endswith("sans jugement.")
+    assert couper_dialogue("Huginn : Je suis là pour toi.") == "Je suis là pour toi."
+    assert couper_dialogue("Réponse simple.\nDETRESSE: NON") == "Réponse simple.\nDETRESSE: NON"
+
+
+def test_le_chat_n_ecrit_pas_le_tour_du_colon(monkeypatch):
+    import ia
+    vu = {}
+
+    def faux(prompt):
+        vu["prompt"] = prompt
+        return TEXTE_RAPPORTE + "\nDETRESSE: NON\nPRESCRIPTION: AUCUNE"
+
+    monkeypatch.setattr(ia, "_appel_ollama_chat", faux)
+    h = nouveau_colon("dialogue1")
+    r = client.post("/chat", json={"message": "Ma famille me manque"}, headers=h).json()["assistant"]
+    assert "Colon :" not in r["texte"] and "famille a une idée" not in r["texte"]
+    assert "Aucune communication avec la Terre" in ia.CHAT_SYSTEM_PROMPT and "N'écris JAMAIS la suite" in ia.CHAT_SYSTEM_PROMPT
+
+
+def test_appel_chat_envoie_les_sequences_d_arret(monkeypatch):
+    import ia
+    envoye = {}
+
+    class Rep:
+        def raise_for_status(self): pass
+        def json(self): return {"response": "Je t'écoute."}
+
+    monkeypatch.setattr(ia.requests, "post", lambda url, json=None, timeout=None: envoye.update(json) or Rep())
+    ia._appel_ollama_chat("prompt")
+    assert "\nColon :" in envoye["options"]["stop"]
+    ia._appel_ollama("prompt")  # les cartes n'ont pas de séquence d'arrêt
+    assert "stop" not in envoye["options"]
+
+
+def test_pas_de_contact_avec_la_terre():
+    from ia import _HORS_SCENARIO
+    for mauvais in ["Appelle ta famille pour en parler.", "Ta famille a une idée de ce que tu vis ?", "Contacte tes proches."]:
+        assert _HORS_SCENARIO.search(mauvais), mauvais
+    assert not _HORS_SCENARIO.search("Ta famille te manque, raconte-moi un souvenir avec elle.")

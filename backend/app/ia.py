@@ -33,6 +33,13 @@ Le système alerte l'équipage tout seul quand c'est nécessaire ; tu peux seule
 parler à un membre de l'équipage.
 - Tu tutoies (« tu », jamais « vous »), ton bienveillant et calme, 2 à 4 phrases courtes et simples, \
 sans liste, sans titre, sans émoji.
+- Réponds uniquement au dernier message du colon. N'écris JAMAIS la suite de la conversation, ni un message à \
+la place du colon, ni « Colon : » ou « Huginn : ».
+- Ne prête jamais au colon des sentiments ou des faits qu'il n'a pas exprimés (« tu te sens déconnecté », « ce coup \
+de mou ») : appuie-toi seulement sur ce qu'il dit, et pose une question ouverte si tu veux en savoir plus.
+- Aucune communication avec la Terre n'est possible : ne suggère jamais d'appeler, de contacter ou de prévenir sa \
+famille ou ses proches restés sur Terre, ni de leur demander s'ils savent ce qu'il vit. Aide-le plutôt à parler de \
+ce qui lui manque, à écrire un message ou un journal pour plus tard, ou à partager avec l'équipage.
 - Tu ne poses pas de diagnostic définitif ; tu peux orienter avec prudence.
 - Tu ne minimises jamais la situation (n'écris jamais « ce n'est pas grave »).
 - Si une alerte est en cours, dis d'abord de suivre le protocole guidé affiché sur l'accueil, étape par étape.
@@ -136,7 +143,10 @@ _HORS_SCENARIO = re.compile(
     r"\b(?:le|un|une|notre|ton|votre|au|du|au près du)\s+(?:psychologue|psychiatre|thérapeute|médecin|docteur|infirmi[eè]re?|spécialiste)\b|"
     r"professionnel(?:le)?s? de (?:la )?santé|"
     r"\bje (?:vais|peux) (?:t'|vous )?(?:appeler|contacter|prévenir|alerter|envoyer|faire venir|demander à)\b|"
-    r"\bj'(?:appelle|alerte|envoie|ai (?:prévenu|appelé|contacté))\b|\bje (?:contacte|préviens|t'envoie)\b",
+    r"\bj'(?:appelle|alerte|envoie|ai (?:prévenu|appelé|contacté))\b|\bje (?:contacte|préviens|t'envoie)\b|"
+    # Aucune communication avec la Terre : ne jamais suggérer de joindre sa famille ou ses proches
+    r"\b(?:appelle|contacte|joins|prévenez?|préviens)\s+(?:ta|ton|tes|votre|vos)\s+(?:famille|proches|parents|amis|enfants)\b|"
+    r"\b(?:famille|proches)\s+(?:sait|savent|a une idée|ont une idée|est au courant|sont au courant)\b",
     re.IGNORECASE,
 )
 TEXTE_MAX = 600
@@ -223,7 +233,10 @@ def _consigne(theme: str, fc: float, spo2: float, temp: float, sommeil: float) -
 _CITE_CONSTANTE = re.compile(r"\d|cardiaque|fréquence|rythme|pouls|cœur|coeur|spo|saturation|oxygène|température|sommeil|dormi|nuit|bpm", re.IGNORECASE)
 
 
-def _post_ollama(prompt: str, system: str, max_tokens: int, temperature: float) -> str:
+def _post_ollama(prompt: str, system: str, max_tokens: int, temperature: float, stop: list[str] | None = None) -> str:
+    options = {"num_predict": max_tokens, "temperature": temperature}
+    if stop:
+        options["stop"] = stop
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -232,7 +245,7 @@ def _post_ollama(prompt: str, system: str, max_tokens: int, temperature: float) 
             "system": system,
             "stream": False,
             "keep_alive": OLLAMA_KEEP_ALIVE,
-            "options": {"num_predict": max_tokens, "temperature": temperature},
+            "options": options,
         },
         timeout=OLLAMA_TIMEOUT,
     )
@@ -247,7 +260,10 @@ def _appel_ollama(prompt: str) -> str:
 
 def _appel_ollama_chat(prompt: str) -> str:
     """Un appel « conversation » : plus long qu'une carte, un peu plus libre."""
-    return _post_ollama(prompt, CHAT_SYSTEM_PROMPT, OLLAMA_CHAT_MAX_TOKENS, 0.6)
+    # Le prompt est un dialogue « Colon : … / Huginn : » : sans arrêt, le modèle continue en écrivant
+    # lui-même le message du colon puis sa propre réponse suivante.
+    return _post_ollama(prompt, CHAT_SYSTEM_PROMPT, OLLAMA_CHAT_MAX_TOKENS, 0.6,
+                        stop=["\nColon :", "\nColon:", "\nHuginn :", "\nHuginn:"])
 
 
 def _conseil_ia(contexte: str, theme: str, consigne: str = "") -> str:
@@ -363,6 +379,20 @@ _LIGNE_PRESCRIPTION = re.compile(r"^[ \t]*PRESCRIPTION[ \t]*:[ \t]*([A-Za-z_]+)[
 _LIGNE_DETRESSE = re.compile(r"^[ \t]*DETRESSE[ \t]*:[ \t]*([A-Za-zÉé]+)[ \t]*$", re.IGNORECASE | re.MULTILINE)
 
 
+_ETIQUETTE_DIALOGUE = re.compile(r"(?:^|\n)[ \t]*(?:Colon|Huginn)[ \t]*:", re.IGNORECASE)
+
+
+def couper_dialogue(brut: str) -> str:
+    """
+    Ne garde que le tour de l'assistant : retire une étiquette « Huginn : » en tête, et coupe dès
+    que le modèle se met à écrire la suite du dialogue (« Colon : … », « Huginn : … »), qui n'est
+    jamais un vrai message du colon.
+    """
+    texte = re.sub(r"^\s*Huginn[ \t]*:[ \t]*", "", brut, flags=re.IGNORECASE)
+    m = _ETIQUETTE_DIALOGUE.search(texte)
+    return texte[: m.start()] if m else texte
+
+
 def extraire_lignes(brut: str) -> tuple[str, str | None, bool]:
     """Sépare le texte des lignes « DETRESSE: OUI|NON » et « PRESCRIPTION: id|AUCUNE »."""
     presc = _LIGNE_PRESCRIPTION.findall(brut)
@@ -421,7 +451,7 @@ def repondre_chat(
     prompt = f"{contexte}\nConversation :\n{dialogue}Colon : {message}\nHuginn :"
     def une_reponse() -> dict:
         brut = _appel_ollama_chat(prompt)
-        corps, med_id, detresse = extraire_lignes(brut)
+        corps, med_id, detresse = extraire_lignes(couper_dialogue(brut))
         texte = terminer_proprement(corps)
         if not texte:
             raise ValueError(f"aucune phrase complète (brut : {brut[:120]!r})")
