@@ -85,7 +85,9 @@ def appliquer_prescription(db: Session, prescription: dict | None, colon_id: int
             "stock_restant": 0, "utilise_alternative": False, "deja_prescrit": False}
 
 
-def prescriptibles_par_chat(db: Session, colon_id: int, couleur: str, alerte_active: bool) -> tuple[list[dict], str | None]:
+def prescriptibles_par_chat(
+    db: Session, colon_id: int, couleur: str, alerte_active: bool, detresse_terminee: bool = False
+) -> tuple[list[dict], str | None]:
     """
     Médicaments que l'IA a le droit de prescrire MAINTENANT à ce colon, et, si
     aucun, la raison (pour que le modèle l'explique sans inventer). Ces règles
@@ -93,7 +95,9 @@ def prescriptibles_par_chat(db: Session, colon_id: int, couleur: str, alerte_act
     """
     if alerte_active:
         return [], "une alerte est en cours : le protocole guidé s'en occupe"
-    if couleur not in ("orange", "rouge"):
+    # Constantes normales : un médicament n'est envisageable qu'après un protocole de
+    # détresse psychologique terminé (le modèle-médecin juge alors s'il est justifié).
+    if couleur not in ("orange", "rouge") and not detresse_terminee:
         return [], "les constantes ne justifient pas un médicament"
     depuis = datetime.utcnow() - timedelta(hours=24)
     deja = db.query(models.Prescription.id).filter(
@@ -113,9 +117,11 @@ def prescriptibles_par_chat(db: Session, colon_id: int, couleur: str, alerte_act
     return ok, (None if ok else raison)
 
 
-def prescrire_par_chat(db: Session, colon_id: int, med_id: str, couleur: str, alerte_active: bool) -> tuple[dict | None, str]:
+def prescrire_par_chat(
+    db: Session, colon_id: int, med_id: str, couleur: str, alerte_active: bool, detresse_terminee: bool = False
+) -> tuple[dict | None, str]:
     """Délivre un médicament du catalogue si les règles l'autorisent (re-vérifiées ici)."""
-    autorises, raison = prescriptibles_par_chat(db, colon_id, couleur, alerte_active)
+    autorises, raison = prescriptibles_par_chat(db, colon_id, couleur, alerte_active, detresse_terminee)
     entree = next((e for e in autorises if e["id"] == med_id), None)
     if entree is None:
         demande = CATALOGUE.get(med_id)

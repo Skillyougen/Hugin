@@ -243,5 +243,18 @@ ni autre nom de médicament écrits par le modèle (filtre de sortie), pas de mi
 renvoi au protocole guidé en cas d'alerte. Le message ne modifie jamais l'état, le
 protocole ni l'alerte.
 
+**Détresse psychologique.** Le message peut déclencher le protocole guidé figé
+`detresse_psychologique` (étapes pour le colon, version « équipage » pour ceux qui
+aident) et une alerte à l'équipage au motif générique « Un colon a besoin d'un
+soutien immédiat » (rien du chat n'est transmis). Deux déclencheurs : un filet de
+mots-clés côté serveur (idées de se faire du mal, crise de panique, « je n'en peux
+plus »), indépendant du modèle, et le jugement du modèle-médecin (ligne
+`DETRESSE: OUI`), limité à un déclenchement par 12 h et par colon. L'IA distingue
+ainsi une vraie détresse d'un simple besoin de réconfort. Le protocole n'inclut
+aucune prescription automatique ; **avec des constantes normales**, l'anxiolytique
+n'est envisageable qu'**après** ce protocole terminé (12 h), sur décision du modèle et
+avec toutes les limites d'économie ci-dessus. `GET /etat` renvoie le protocole actif
+même si le colon n'a importé aucune constante.
+
 Protocoles guidés : un même colon ne se voit pas redébiter le même médicament avant
 `PRESCRIPTION_DELAI_H` (6 h) ; la prescription porte alors `deja_prescrit: true`.

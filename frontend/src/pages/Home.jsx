@@ -66,8 +66,9 @@ export default function HomePage() {
   const wellbeing = useMemo(() => (etat ? wellbeingFromCouleur(etat.couleur) : null), [etat])
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.text
   const mood = useFoxyMood({
-    score: wellbeing?.score ?? 100,
-    status: wellbeing?.level ?? 'good',
+    // Un protocole actif (crise physique ou détresse déclarée) prime : Foxy reste attentif, jamais « content ».
+    score: etat?.protocole_actif ? 15 : (wellbeing?.score ?? 100),
+    status: etat?.protocole_actif ? 'critical' : (wellbeing?.level ?? 'good'),
     phase: isTyping ? 'assistantThinking' : userTyping ? 'userTyping' : 'idle',
     lastUserMessage: lastUser,
     hour: new Date().getHours(),
@@ -88,6 +89,8 @@ export default function HomePage() {
         const reply = messageFromApi(res.assistant)
         reply.mood = wellbeing?.level === 'critical' ? 'alert' : (moodFromMessage(text) ?? 'neutral')
         setMessages((prev) => [...prev.filter((m) => m.id !== temp.id), messageFromApi(res.utilisateur), reply])
+        // Le message a pu déclencher un protocole (détresse) ou une prescription : rafraîchir l'écran.
+        api.getEtat(token).then(setEtat).catch(() => {})
       } catch (err) {
         setMessages((prev) => [
           ...prev,

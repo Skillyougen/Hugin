@@ -1,0 +1,20 @@
+{
+  "id": "detresse_psychologique",
+  "titre": "Détresse psychologique",
+  "declencheur": { "constante": "chat", "niveau_minimal": 99 },
+  "etapes": [
+    "Arrête ce que tu fais et installe-toi assis·e dans un endroit calme. Tu n'es pas seul·e : l'équipage est prévenu.",
+    "Respire lentement : inspire par le nez sur 4 temps, expire par la bouche sur 6 temps. Répète dix fois.",
+    "Ancre-toi dans le présent : nomme 5 choses que tu vois, 4 que tu touches, 3 que tu entends, 2 que tu sens, 1 que tu goûtes.",
+    "Bois un verre d'eau à petites gorgées et relâche tes épaules.",
+    "Reste avec un membre de l'équipage jusqu'à ce que tu te sentes plus calme. Tu peux aussi continuer à me parler ici."
+  ],
+  "etapes_equipage": [
+    "Rejoins {nom} sans attendre et reste sur place : ne laisse pas {nom} seul·e.",
+    "Parle d'une voix calme et lente. Écoute sans juger, sans minimiser et sans conseils pressés.",
+    "Guide {nom} dans une respiration lente : inspirer 4 temps, expirer 6 temps, dix fois.",
+    "Propose à {nom} de boire de l'eau et de s'asseoir dans un endroit calme ; écarte tout objet qui pourrait être dangereux.",
+    "Reste auprès de {nom} jusqu'à un apaisement net. Si {nom} parle de se faire du mal, ne quitte pas {nom} et préviens les autres membres de l'équipage."
+  ],
+  "prescription": null
+}

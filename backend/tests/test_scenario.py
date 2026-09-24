@@ -385,3 +385,75 @@ def test_chat_dose_ecrite_par_le_modele_refusee(monkeypatch):
     avant = stock(h, "Anxiolytique léger")
     r = client.post("/chat", json={"message": "Aide-moi"}, headers=h).json()["assistant"]
     assert r["source"] == "regles" and "mg" not in r["texte"] and stock(h, "Anxiolytique léger") == avant
+
+
+# ---------- détresse psychologique : protocole, alerte équipage, prescription encadrée ----------
+def test_detection_mots_de_detresse():
+    from detresse import mots_de_detresse
+    assert mots_de_detresse("Je veux en finir") and mots_de_detresse("J’ai envie de me faire du mal")
+    assert mots_de_detresse("je fais une CRISE DE PANIQUE") and mots_de_detresse("Je n'en peux plus")
+    assert not mots_de_detresse("J'ai mal dormi et je suis fatigué") and not mots_de_detresse("Bonjour")
+
+
+def test_filet_de_securite_sans_modele_alerte_l_equipage():
+    # Ollama coupé (test) : le filet de mots-clés déclenche quand même protocole + alerte
+    detresse_h, equipage = nouveau_colon("detresse1"), auth("nyota", "nyota1234")
+    r = client.post("/chat", json={"message": "je n'en peux plus, je veux en finir"}, headers=detresse_h).json()["assistant"]
+    assert r["source"] == "regles" and "Je préviens l'équipage" in r["texte"]
+    assert "constantes" not in r["texte"]  # pas de réponse de secours générique pour quelqu'un en crise
+    p = client.get("/etat", headers=detresse_h).json()["protocole_actif"]
+    assert p["protocole_id"] == "detresse_psychologique" and p["prescription"] is None and p["vue"] == "colon"
+    alertes = [a for a in client.get("/alertes", headers=equipage).json() if a["colon_nom"] == "Detresse1"]
+    assert len(alertes) == 1 and alertes[0]["motif"] == "Un colon a besoin d'un soutien immédiat"
+    assert "veux en finir" not in str(alertes)  # rien du chat n'est transmis
+    vue = client.get(f"/alertes/{alertes[0]['id']}/protocole", headers=equipage).json()
+    assert vue["vue"] == "equipage" and "Detresse1" in " ".join(vue["etapes"]) and "ton " not in " ".join(vue["etapes"])
+    assert len(vue["etapes"]) == len(p["etapes"])
+
+
+def test_jugement_du_medecin_detresse_vs_confort(monkeypatch):
+    import ia
+    confort = "Ça arrive, un peu de cafard. Parle-moi de ta journée.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE"
+    vraie = "Je suis là avec toi, on va y aller doucement.\nDETRESSE: OUI\nPRESCRIPTION: AUCUNE"
+    reponse = {"texte": confort}
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: reponse["texte"])
+    h = nouveau_colon("detresse2")
+    client.post("/chat", json={"message": "Je m'ennuie un peu ce soir"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"] is None  # confort : ni alerte ni protocole
+    reponse["texte"] = vraie
+    client.post("/chat", json={"message": "Je suis complètement submergé, je ne me calme plus"}, headers=h)
+    assert client.get("/etat", headers=h).json()["protocole_actif"]["protocole_id"] == "detresse_psychologique"
+
+
+def test_anxiolytique_apres_protocole_seulement_et_sans_confort(monkeypatch):
+    import ia
+    demande = "Je reste très mal, je te demande un calmant.\nDETRESSE: NON\nPRESCRIPTION: anxiolytique"
+    monkeypatch.setattr(ia, "_appel_ollama_chat", lambda p: demande)
+    h = nouveau_colon("detresse3")
+    client.post("/mesures", json=NORMAL, headers=h)  # constantes normales
+    avant = stock(h, "Anxiolytique léger")
+
+    # Confort : aucun protocole de détresse terminé -> refusé même si le modèle le demande
+    r = client.post("/chat", json={"message": "Je voudrais un calmant pour être tranquille"}, headers=h).json()["assistant"]["texte"]
+    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+
+    # Vraie détresse : protocole déclenché (mots-clés), pas de médicament pendant l'alerte
+    r = client.post("/chat", json={"message": "j'ai une crise de panique"}, headers=h).json()["assistant"]["texte"]
+    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant
+
+    # Protocole terminé : le médecin peut prescrire, posologie figée, une dose débitée
+    for _ in range(5):
+        client.post("/protocole/etape-suivante", headers=h)
+    r = client.post("/chat", json={"message": "Je suis toujours en détresse, aide-moi"}, headers=h).json()["assistant"]["texte"]
+    assert "Prescription : Anxiolytique léger — 5 mg, dose unique" in r
+    assert stock(h, "Anxiolytique léger") == avant - 1
+    # Redemande aussitôt : délai minimum
+    r = client.post("/chat", json={"message": "Encore un calmant"}, headers=h).json()["assistant"]["texte"]
+    assert "Prescription non délivrée" in r and stock(h, "Anxiolytique léger") == avant - 1
+
+
+def test_lignes_detresse_et_prescription_extraites():
+    from ia import extraire_lignes
+    assert extraire_lignes("Je suis là.\nDETRESSE: OUI\nPRESCRIPTION: anxiolytique") == ("Je suis là.", "anxiolytique", True)
+    assert extraire_lignes("Ok.\nDETRESSE: NON\nPRESCRIPTION: AUCUNE") == ("Ok.", None, False)
+    assert extraire_lignes("Sans lignes") == ("Sans lignes", None, False)

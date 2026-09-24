@@ -38,8 +38,16 @@ Médicaments : les stocks du vaisseau sont limités et doivent durer toute la mi
 médicament du catalogue qui t'est présenté, mais seulement en dernier recours : d'abord des mesures simples \
 (respiration, repos, eau, parler à quelqu'un), jamais par confort ni pour rassurer. Tu n'écris JAMAIS de dose, \
 de durée ni de nom de médicament autre que celui que tu prescris : la posologie est ajoutée par le système. \
-Termine TOUJOURS ta réponse par une dernière ligne exacte : « PRESCRIPTION: <identifiant> » si tu prescris, \
-sinon « PRESCRIPTION: AUCUNE ».
+
+Vraie détresse ou confort : c'est à toi, en médecin, de faire la différence. Une VRAIE détresse psychologique \
+(panique, effondrement, incapacité à se calmer, idées de se faire du mal) déclenche le protocole guidé et prévient \
+l'équipage ; un simple coup de fatigue, d'ennui, de cafard ou un besoin de réconfort n'en est pas une : \
+écoute et conseils simples suffisent, sans alerte ni médicament. Un médicament n'est justifié que pour une vraie \
+détresse, quand les mesures simples n'ont pas suffi.
+
+Termine TOUJOURS ta réponse par deux dernières lignes exactes :
+DETRESSE: OUI (vraie détresse psychologique) ou DETRESSE: NON
+PRESCRIPTION: <identifiant> (si tu prescris) ou PRESCRIPTION: AUCUNE
 """
 
 SYSTEM_PROMPT = """Tu es Huginn, l'assistant psychologique des colons d'un vaisseau \
@@ -330,14 +338,22 @@ def _reponse_chat_secours(couleur: str, protocole_titre: str | None, mesure: dic
 
 
 _LIGNE_PRESCRIPTION = re.compile(r"^[ \t]*PRESCRIPTION[ \t]*:[ \t]*([A-Za-z_]+)[ \t]*$", re.IGNORECASE | re.MULTILINE)
+_LIGNE_DETRESSE = re.compile(r"^[ \t]*DETRESSE[ \t]*:[ \t]*([A-Za-zÉé]+)[ \t]*$", re.IGNORECASE | re.MULTILINE)
+
+
+def extraire_lignes(brut: str) -> tuple[str, str | None, bool]:
+    """Sépare le texte des lignes « DETRESSE: OUI|NON » et « PRESCRIPTION: id|AUCUNE »."""
+    presc = _LIGNE_PRESCRIPTION.findall(brut)
+    detresse = _LIGNE_DETRESSE.findall(brut)
+    texte = _LIGNE_DETRESSE.sub("", _LIGNE_PRESCRIPTION.sub("", brut)).strip()
+    med = presc[-1].lower() if presc else "aucune"
+    return texte, (None if med == "aucune" else med), bool(detresse) and detresse[-1].lower() == "oui"
 
 
 def extraire_prescription(brut: str) -> tuple[str, str | None]:
-    """Sépare le texte de la ligne « PRESCRIPTION: id » ; id None si « AUCUNE » ou absente."""
-    trouves = _LIGNE_PRESCRIPTION.findall(brut)
-    texte = _LIGNE_PRESCRIPTION.sub("", brut).strip()
-    med = trouves[-1].lower() if trouves else "aucune"
-    return texte, (None if med == "aucune" else med)
+    """Compatibilité : texte et identifiant de prescription seulement."""
+    texte, med, _ = extraire_lignes(brut)
+    return texte, med
 
 
 def repondre_chat(
@@ -348,6 +364,7 @@ def repondre_chat(
     protocole_titre: str | None,
     autorises: list[dict] | None = None,
     raison_refus: str | None = None,
+    detresse_terminee: bool = False,
 ) -> dict:
     """
     Réponse de l'IA à un message libre du colon. `conversation` : derniers
@@ -355,7 +372,8 @@ def repondre_chat(
     que le serveur permet de prescrire MAINTENANT (voir inventaire.prescriptibles_par_chat) ;
     le modèle ne fait que choisir parmi eux, le serveur re-vérifie et applique la posologie figée.
     Le message n'influence jamais la couleur ni le protocole (fixés par les seuils).
-    Retourne {"texte", "source": "ia"|"regles", "prescription_id": str|None}.
+    Retourne {"texte", "source": "ia"|"regles", "prescription_id": str|None, "detresse": bool}
+    (`detresse` : le modèle-médecin juge qu'il s'agit d'une vraie détresse, pas de confort).
     """
     autorises = autorises or []
     contexte = "Contexte (non visible du colon) :\n"
@@ -368,6 +386,8 @@ def repondre_chat(
         contexte += "- Le colon n'a encore importé aucune constante.\n"
     if protocole_titre:
         contexte += f"- ALERTE EN COURS : protocole guidé « {protocole_titre} » actif.\n"
+    if detresse_terminee:
+        contexte += "- Le colon vient de terminer le protocole guidé de détresse psychologique.\n"
     if autorises:
         contexte += "- Médicaments que tu peux prescrire maintenant (catalogue, dernier recours) :\n"
         contexte += "".join(f"  * {e['id']} : pour {e['indication']}\n" for e in autorises)
@@ -379,7 +399,7 @@ def repondre_chat(
     prompt = f"{contexte}\nConversation :\n{dialogue}Colon : {message}\nHuginn :"
     try:
         brut = _appel_ollama_chat(prompt)
-        corps, med_id = extraire_prescription(brut)
+        corps, med_id, detresse = extraire_lignes(brut)
         texte = terminer_proprement(corps)
         if not texte:
             raise ValueError(f"aucune phrase complète (brut : {brut[:120]!r})")
@@ -390,7 +410,7 @@ def repondre_chat(
             raise ValueError(f"filtre garde-fou sur {interdit.group(0)!r} dans : {texte[:160]!r}")
         if len(texte) > 900:
             raise ValueError(f"réponse trop longue ({len(texte)} caractères)")
-        return {"texte": texte, "source": "ia", "prescription_id": med_id}
+        return {"texte": texte, "source": "ia", "prescription_id": med_id, "detresse": detresse}
     except (requests.RequestException, ValueError, KeyError) as exc:
         logger.warning("Chat : IA écartée, réponse de secours : %s: %s", type(exc).__name__, exc)
-        return {"texte": _reponse_chat_secours(couleur, protocole_titre, mesure), "source": "regles", "prescription_id": None}
+        return {"texte": _reponse_chat_secours(couleur, protocole_titre, mesure), "source": "regles", "prescription_id": None, "detresse": False}

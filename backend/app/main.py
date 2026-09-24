@@ -13,6 +13,7 @@ import schemas
 from ia import generer_recommandations, prechauffer_modele, repondre_chat
 from seuils import evaluer_mesure
 from protocoles import selectionner_protocole, PROTOCOLES
+import detresse
 from inventaire import appliquer_prescription, prescriptibles_par_chat, prescrire_par_chat
 from auth import (
     verifier_mot_de_passe, creer_session, get_current_colon, hash_factice,
@@ -190,10 +191,18 @@ def etat_global(colon: models.Colon = Depends(get_current_colon), db: Session = 
     )
 
     if derniere is None:
-        # §4 : pas d'état vert par défaut tant qu'aucune donnée n'a été importée.
+        # §4 : pas d'état vert par défaut tant qu'aucune donnée n'a été importée. Un protocole
+        # actif (ex. détresse psychologique déclarée dans le chat) reste toutefois affiché.
+        alerte = (
+            db.query(models.Alerte)
+            .filter(models.Alerte.colon_id == colon.id, models.Alerte.resolue == False)  # noqa: E712
+            .order_by(desc(models.Alerte.timestamp))
+            .first()
+        )
         return schemas.EtatGlobal(
             colon_id=colon.id, couleur="aucune_donnee", score=-1,
-            derniere_mesure=None, recommandations=[], protocole_actif=None,
+            derniere_mesure=None, recommandations=[],
+            protocole_actif=_construire_protocole_actif(alerte, alerte.suivi) if alerte and alerte.suivi else None,
         )
 
     recos = (
@@ -400,11 +409,27 @@ def envoyer_message(
     db.add(message_user)
     # L'IA est aussi le médecin de bord et peut prescrire, mais seulement parmi ce que le
     # serveur autorise maintenant (état, délais, plafond, réserve de stock).
-    autorises, raison_refus = prescriptibles_par_chat(db, colon.id, couleur, alerte_active=protocole_titre is not None)
-    reponse = repondre_chat(texte, conversation, mesure, couleur, protocole_titre, autorises, raison_refus)
+    alerte_active = protocole_titre is not None
+    apres_protocole = detresse.episode_termine_recent(db, colon.id)
+    autorises, raison_refus = prescriptibles_par_chat(db, colon.id, couleur, alerte_active, apres_protocole)
+    reponse = repondre_chat(texte, conversation, mesure, couleur, protocole_titre, autorises, raison_refus, apres_protocole)
     texte_reponse = reponse["texte"]
+
+    # Détresse psychologique : protocole guidé + alerte équipage. Le filet de mots-clés ne dépend
+    # pas du modèle ; le jugement du modèle est limité à un déclenchement par 12 h.
+    if not alerte_active and (
+        detresse.mots_de_detresse(texte) or (reponse["detresse"] and not detresse.alerte_recente(db, colon.id))
+    ):
+        detresse.declencher(db, colon)
+        alerte_active = True
+        if reponse["source"] == "regles":
+            # Réponse de secours générique (« importe tes constantes ») déplacée pour quelqu'un en crise.
+            texte_reponse = "Ce que tu ressens compte, et tu n'es pas seul·e."
+        texte_reponse += ("\n\nJe préviens l'équipage et je te guide : suis le protocole « Détresse psychologique » "
+                          "affiché sur l'accueil. Tu n'es pas seul·e.")
+
     if reponse["prescription_id"]:
-        delivre, raison = prescrire_par_chat(db, colon.id, reponse["prescription_id"], couleur, protocole_titre is not None)
+        delivre, raison = prescrire_par_chat(db, colon.id, reponse["prescription_id"], couleur, alerte_active, apres_protocole)
         if delivre:
             n = delivre["stock_restant"]
             texte_reponse += (f"\n\nPrescription : {delivre['medicament']} — {delivre['dosage']}, {delivre['duree']} "
