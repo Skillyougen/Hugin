@@ -100,6 +100,8 @@ class ProtocoleActifOut(BaseModel):
     vue: str = "colon"
     etape_courante: int
     termine: bool
+    # Index de l'étape où l'on prend le traitement : la prescription s'affiche à partir de là (None : dernière étape).
+    etape_traitement: int | None = None
     prescription: PrescriptionOut | None
 
 

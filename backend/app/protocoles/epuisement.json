@@ -5,19 +5,20 @@
     "constante": "sommeil",
     "niveau_minimal": 2
   },
+  "etape_traitement": null,
   "etapes": [
-    "Signale ton état à un membre de l'équipage pour qu'il allège ta charge de travail immédiate.",
-    "Va t'installer dans ta cabine et coupe les écrans et les alertes non essentielles.",
-    "Accorde-toi un temps de repos d'au moins 3 heures avant toute tâche non critique.",
-    "Bois de l'eau et évite toute prise de caféine avant ce repos.",
-    "À ton réveil, réimporte tes constantes pour vérifier ton état."
+    "Préviens un membre de l'équipage que tu as très peu dormi et ne garde aucune tâche critique (pilotage, réparations, manipulation d'équipements) tant que tu n'as pas récupéré.",
+    "Passe le relais de tes tâches en cours, note où tu en étais et éteins les écrans et les alertes non essentielles.",
+    "Bois un verre d'eau et mange un petit encas (fruit, biscuit). Évite la caféine si tu comptes dormir dans les prochaines heures.",
+    "Va dans ta cabine et dors : vise un cycle complet de 90 minutes, au minimum 20 à 30 minutes. Baisse la lumière et règle un réveil.",
+    "Au réveil, bois un verre d'eau et réimporte tes constantes. Ne reprends tes tâches critiques que si tu te sens lucide."
   ],
-  "prescription": null,
   "etapes_equipage": [
-    "Prends le relais de {nom} sur ses tâches immédiates, ou trouve quelqu'un pour le faire.",
-    "Accompagne {nom} jusqu'à sa cabine et coupe les écrans et les alertes non essentielles.",
-    "Laisse à {nom} un temps de repos d'au moins 3 heures avant toute tâche non critique.",
-    "Apporte de l'eau à {nom} et évite toute caféine avant ce repos.",
-    "Au réveil de {nom}, demande de réimporter ses constantes pour vérifier son état."
-  ]
+    "Assure-toi que {nom} n'occupe aucune tâche critique (pilotage, réparations, équipements) et reprends-la ou trouve quelqu'un pour le faire.",
+    "Aide {nom} à passer le relais : note où {nom} en était, coupe les écrans et les alertes non essentielles.",
+    "Apporte de l'eau et un petit encas à {nom}, sans caféine si {nom} va dormir bientôt.",
+    "Accompagne {nom} jusqu'à sa cabine : lumière basse, un cycle de sommeil de 90 minutes (20 à 30 minutes au minimum) et un réveil réglé.",
+    "Au réveil de {nom}, vérifie que {nom} est lucide avant de rendre des tâches critiques et demande de réimporter les constantes."
+  ],
+  "prescription": null
 }

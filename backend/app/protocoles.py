@@ -27,16 +27,30 @@ def _charger_protocoles() -> dict:
 PROTOCOLES = _charger_protocoles()
 
 
-def selectionner_protocole(details: dict) -> dict | None:
+# Milieu de plage : sépare le « trop haut » du « trop bas » (protocoles différents : on ne
+# refroidit pas une hypothermie, on n'agit pas pareil sur un pouls lent et un pouls rapide).
+MILIEU = {"frequence_cardiaque": 75, "temperature": 37}
+
+
+def selectionner_protocole(details: dict, valeurs: dict | None = None) -> dict | None:
     """
     `details` : sortie de seuils.evaluer_mesure(...)[2], ex.
     {"frequence_cardiaque": 2, "spo2": 0, "temperature": 1, "sommeil": 0}.
+    `valeurs` : les constantes brutes {"frequence_cardiaque": 128, "temperature": 38.9, ...},
+    pour choisir entre le protocole « haut » et « bas » (champ `sens` du déclencheur).
     Retourne le protocole figé à déclencher, ou None si rien n'est critique.
     """
+    valeurs = valeurs or {}
     for constante in ORDRE_PRIORITE:
         if details.get(constante, 0) >= 2:
             for protocole in PROTOCOLES.values():
                 decl = protocole["declencheur"]
-                if decl["constante"] == constante and details[constante] >= decl["niveau_minimal"]:
-                    return protocole
+                if decl["constante"] != constante or details[constante] < decl["niveau_minimal"]:
+                    continue
+                sens = decl.get("sens")
+                if sens and constante in valeurs:
+                    haut = valeurs[constante] > MILIEU[constante]
+                    if (sens == "haut") != haut:
+                        continue
+                return protocole
     return None

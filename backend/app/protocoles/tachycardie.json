@@ -1,16 +1,27 @@
 {
   "id": "tachycardie",
-  "titre": "Fréquence cardiaque critique",
+  "titre": "Fréquence cardiaque très élevée",
   "declencheur": {
     "constante": "frequence_cardiaque",
-    "niveau_minimal": 2
+    "niveau_minimal": 2,
+    "sens": "haut"
   },
+  "etape_traitement": 4,
   "etapes": [
-    "Arrête tout effort immédiatement et assieds-toi.",
-    "Desserre toute sangle ou combinaison serrée autour du torse.",
-    "Fais une respiration abdominale lente : inspire 4 temps, expire 6 temps, dix fois.",
-    "Bois un peu d'eau si tu le peux, sans te lever.",
-    "Prends le traitement indiqué ci-dessous, puis reste assis·e 15 minutes avant de reprendre une activité légère."
+    "Arrête tout effort tout de suite et assieds-toi ou allonge-toi. Desserre ta combinaison au niveau du torse et du cou.",
+    "Prends ton pouls au poignet pendant 30 secondes : compte les battements et note s'il est régulier ou irrégulier.",
+    "Bois un grand verre d'eau fraîche à petites gorgées. Puis, une seule fois et sans forcer, expire fort pendant 15 secondes le nez pincé et la bouche fermée.",
+    "Respire lentement pendant 3 minutes, sans parler : inspire 4 secondes, expire 6 secondes.",
+    "Prends le traitement indiqué ci-dessous avec de l'eau, puis reste assis·e ou allongé·e.",
+    "Après 15 minutes, reprends ton pouls et réimporte tes constantes. Sous 100 bpm, reste au repos 1 heure. Au-dessus de 120, ou en cas de douleur dans la poitrine, de malaise ou de gêne pour respirer, allonge-toi jambes surélevées et ne reste pas seul·e."
+  ],
+  "etapes_equipage": [
+    "Va auprès de {nom} sans attendre. Fais arrêter tout effort à {nom}, installe {nom} assis·e ou allongé·e et desserre la combinaison au niveau du torse et du cou.",
+    "Prends le pouls de {nom} au poignet pendant 30 secondes : compte les battements et note s'il est régulier ou irrégulier.",
+    "Fais boire à {nom} un grand verre d'eau fraîche à petites gorgées. Puis guide une seule expiration forte de 15 secondes, nez pincé et bouche fermée, sans forcer.",
+    "Guide la respiration de {nom} pendant 3 minutes, sans parler : inspirer 4 secondes, expirer 6 secondes.",
+    "Fais prendre à {nom} le traitement indiqué ci-dessous avec de l'eau, puis garde {nom} au repos.",
+    "Après 15 minutes, reprends le pouls de {nom}. Sous 100 bpm : repos 1 heure. Au-dessus de 120, ou douleur dans la poitrine, malaise ou gêne pour respirer : allonge {nom} jambes surélevées et ne quitte pas {nom}."
   ],
   "prescription": {
     "medicament": "Propranolol (Avlocardyl)",
@@ -21,12 +32,5 @@
       "dosage": "25 mg",
       "duree": "dose unique"
     }
-  },
-  "etapes_equipage": [
-    "Fais arrêter tout effort à {nom} immédiatement et installe {nom} en position assise.",
-    "Aide {nom} à desserrer toute sangle ou combinaison serrée autour du torse.",
-    "Guide {nom} dans une respiration abdominale lente : inspirer 4 temps, expirer 6 temps, dix fois.",
-    "Propose à {nom} de boire un peu d'eau, sans se lever.",
-    "Fais prendre à {nom} le traitement indiqué ci-dessous, puis garde {nom} assis·e 15 minutes avant toute activité légère."
-  ]
+  }
 }

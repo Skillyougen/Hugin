@@ -62,7 +62,7 @@ export default function ActiveProtocolCard({ protocole, onEtapeSuivante, readOnl
             <p className="m-0 text-lg font-semibold leading-snug text-text-primary">{protocole.etapes[index]}</p>
           </div>
 
-          {derniere && p && (
+          {p && (protocole.etape_traitement != null ? index >= protocole.etape_traitement : derniere) && (
             <p className="m-0 rounded-xl border border-surface-border p-3 text-sm text-text-secondary">
               <strong className="text-text-primary">{aidant ? 'Traitement à faire prendre' : 'Traitement'} :</strong>{' '}
               {p.deja_prescrit && 'Déjà délivré récemment : pas de nouvelle dose, le stock est préservé. '}

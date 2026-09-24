@@ -1,0 +1,25 @@
+{
+  "id": "hypothermie",
+  "titre": "Température corporelle très basse",
+  "declencheur": {
+    "constante": "temperature",
+    "niveau_minimal": 2,
+    "sens": "bas"
+  },
+  "etape_traitement": null,
+  "etapes": [
+    "Arrête tout effort et mets-toi à l'abri du froid : rejoins une zone chauffée du vaisseau et retire tout vêtement humide.",
+    "Couvre-toi avec des couvertures ou une couverture de survie, tête et cou compris. Reste assis·e ou allongé·e, sans t'agiter.",
+    "Bois une boisson chaude et sucrée à petites gorgées, sans alcool ni café.",
+    "Réchauffe d'abord le tronc (poitrine, aisselles, aine) avec une source de chaleur douce, jamais directement sur la peau.",
+    "Remesure ta température toutes les 15 minutes et réimporte tes constantes. Au-dessus de 36 °C, reste au chaud 1 heure. Si tu restes sous 35 °C, ou en cas de tremblements violents, de somnolence ou de confusion, ne reste pas seul·e."
+  ],
+  "etapes_equipage": [
+    "Emmène {nom} dans une zone chauffée du vaisseau et retire les vêtements humides.",
+    "Couvre {nom} de couvertures ou d'une couverture de survie, tête et cou compris, et évite à {nom} tout effort.",
+    "Donne à {nom} une boisson chaude et sucrée à petites gorgées, sans alcool ni café.",
+    "Réchauffe le tronc de {nom} (poitrine, aisselles, aine) avec une source de chaleur douce, jamais directement sur la peau.",
+    "Remesure la température de {nom} toutes les 15 minutes. Au-dessus de 36 °C, repos au chaud 1 heure. Sous 35 °C, tremblements violents, somnolence ou confusion : continue à réchauffer et ne quitte pas {nom}."
+  ],
+  "prescription": null
+}

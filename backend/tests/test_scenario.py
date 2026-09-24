@@ -453,7 +453,7 @@ def test_anxiolytique_apres_protocole_seulement_et_sans_confort(monkeypatch):
     assert "Prescription non délivrée" in r and stock(h, "Atarax (hydroxyzine)") == avant
 
     # Protocole terminé : le médecin peut prescrire, posologie figée, une dose débitée
-    for _ in range(5):
+    for _ in range(len(client.get("/etat", headers=h).json()["protocole_actif"]["etapes"])):
         client.post("/protocole/etape-suivante", headers=h)
     r = client.post("/chat", json={"message": "Je suis toujours en détresse, aide-moi"}, headers=h).json()["assistant"]["texte"]
     assert "Prescription : Atarax (hydroxyzine) — 25 mg, dose unique" in r
@@ -553,3 +553,33 @@ def test_hors_scenario_regex():
     for bon in ["Je suis là pour t'écouter.", "Parle à un membre de l'équipage.", "Je te conseille de prévenir un ami.",
                 "Ta FC est à 115 bpm, respire lentement."]:
         assert not _HORS_SCENARIO.search(bon), bon
+
+
+def test_protocoles_hauts_et_bas_distincts_et_realistes():
+    from protocoles import selectionner_protocole, PROTOCOLES
+    from seuils import evaluer_mesure
+
+    def choisir(fc=72, spo2=98, temp=36.8, sommeil=7):
+        return selectionner_protocole(evaluer_mesure(fc, spo2, temp, sommeil)[2],
+                                      {"frequence_cardiaque": fc, "spo2": spo2, "temperature": temp, "sommeil": sommeil})["id"]
+    assert choisir(fc=130) == "tachycardie" and choisir(fc=35) == "bradycardie"
+    assert choisir(temp=39.2) == "hyperthermie" and choisir(temp=34.5) == "hypothermie"
+    assert choisir(spo2=88) == "hypoxie" and choisir(sommeil=3) == "epuisement"
+    # Chaque protocole : même nombre d'étapes pour le colon et l'équipage, contenu concret
+    for p in PROTOCOLES.values():
+        assert len(p["etapes"]) == len(p["etapes_equipage"]) >= 5, p["id"]
+        if p.get("etape_traitement") is not None:
+            assert p["prescription"] and 0 <= p["etape_traitement"] < len(p["etapes"])
+            assert "traitement" in p["etapes"][p["etape_traitement"]].lower()
+    # Hypothermie : on réchauffe, on ne refroidit pas (bug d'origine : même protocole que l'hyperthermie)
+    froid = " ".join(PROTOCOLES["hypothermie"]["etapes"]).lower()
+    assert "couverture" in froid and "linge humide" not in froid
+    assert "linge humide" in " ".join(PROTOCOLES["hyperthermie"]["etapes"]).lower()
+
+
+def test_ordonnance_visible_a_l_etape_du_traitement():
+    h = nouveau_colon("etapes1")
+    client.post("/mesures", json=CRISE, headers=h)  # hypoxie : traitement à l'étape 4 (index 3)
+    p = client.get("/etat", headers=h).json()["protocole_actif"]
+    assert p["etape_traitement"] == 3 and p["prescription"]["medicament"] == "Ventoline (salbutamol)"
+    assert len(p["etapes"]) == 6 and "10 minutes" in p["etapes"][4]

@@ -96,6 +96,14 @@ constantes, recommandations (toujours 5 cartes, celles du dernier import : repos
 "pas de vert par défaut" du §4 : n'affiche ni carte d'état ni recommandation
 dans ce cas, invite au premier import.
 
+Champ `etape_traitement` : index (à partir de 0) de l'étape où l'on prend le traitement ;
+la prescription s'affiche à partir de cette étape (`null` : dernière étape, ou aucun traitement).
+Sept protocoles figés (`backend/app/protocoles/*.json`), choisis selon la constante critique
+et son sens (trop haut / trop bas) : `hypoxie`, `tachycardie`, `bradycardie`, `hyperthermie`,
+`hypothermie`, `epuisement`, et `detresse_psychologique` (déclenché depuis le chat). Chaque
+étape est un geste précis avec ses durées et un contrôle final (réimporter les constantes,
+critères d'aggravation) ; seuls hypoxie, tachycardie et hyperthermie prescrivent un médicament.
+
 Champs `colon_nom` et `vue` : `vue` vaut `"colon"` (étapes rédigées à la 2ᵉ
 personne pour le colon en détresse) ou `"equipage"` (mêmes étapes, même nombre,
 rédigées pour la personne qui aide, avec le nom du colon). `GET /alertes/{id}/protocole`

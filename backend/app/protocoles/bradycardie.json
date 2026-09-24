@@ -1,0 +1,25 @@
+{
+  "id": "bradycardie",
+  "titre": "Fréquence cardiaque très basse",
+  "declencheur": {
+    "constante": "frequence_cardiaque",
+    "niveau_minimal": 2,
+    "sens": "bas"
+  },
+  "etape_traitement": null,
+  "etapes": [
+    "Arrête tout effort et allonge-toi tout de suite, les jambes surélevées d'environ 30 cm, pour éviter un malaise.",
+    "Reste allongé·e, ne te lève pas brusquement. Desserre ta combinaison et respire calmement.",
+    "Prends ton pouls au poignet pendant 30 secondes : compte les battements, note s'il est régulier et l'heure.",
+    "Surveille les signes d'alerte : vertiges, vue qui se voile, douleur ou serrement dans la poitrine, essoufflement. Si l'un d'eux apparaît, dis-le tout de suite à l'équipage et ne te lève pas.",
+    "Reste allongé·e au moins 15 minutes, puis reprends ton pouls et réimporte tes constantes. Au-dessus de 50 bpm et sans symptôme, relève-toi lentement, en deux temps. Sinon, reste allongé·e avec quelqu'un à côté de toi."
+  ],
+  "etapes_equipage": [
+    "Va auprès de {nom} et fais allonger {nom} tout de suite, les jambes surélevées d'environ 30 cm.",
+    "Desserre la combinaison de {nom}, rassure {nom} et demande de ne pas se lever brusquement.",
+    "Prends le pouls de {nom} au poignet pendant 30 secondes : compte les battements, note s'il est régulier et l'heure.",
+    "Surveille les signes d'alerte : vertiges, vue qui se voile, douleur ou serrement dans la poitrine, essoufflement, perte de connaissance. Si l'un d'eux apparaît, garde {nom} allongé·e et ne quitte pas {nom}.",
+    "Après 15 minutes, reprends le pouls de {nom}. Au-dessus de 50 bpm et sans symptôme, aide {nom} à se relever lentement, en deux temps. Sinon, reste auprès de {nom}, allongé·e."
+  ],
+  "prescription": null
+}

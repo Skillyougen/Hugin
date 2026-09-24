@@ -5,12 +5,22 @@
     "constante": "spo2",
     "niveau_minimal": 2
   },
+  "etape_traitement": 3,
   "etapes": [
-    "Arrête toute activité et assieds-toi ou allonge-toi, dos droit si possible.",
-    "Va chercher le masque à oxygène du kit médical de bord et place-le sur ton nez et ta bouche.",
-    "Respire lentement par le nez sur 4 temps, bloque 2 temps, expire sur 6 temps.",
-    "Préviens un membre de l'équipage le plus proche pendant que tu restes assis·e.",
-    "Prends le traitement indiqué ci-dessous, puis reste au repos et surveille ta SpO2."
+    "Arrête tout effort et assieds-toi, le buste redressé et légèrement penché en avant, les bras appuyés sur les cuisses. Desserre ta combinaison au col et à la poitrine.",
+    "Respire lentement : inspire par le nez, puis expire par la bouche, lèvres pincées, deux fois plus longtemps que l'inspiration. Garde ce rythme 1 à 2 minutes.",
+    "Prends le masque à oxygène du kit médical, ouvre la bouteille à 4 L/min et place le masque sur ton nez et ta bouche. Garde-le en continu.",
+    "Prends le traitement indiqué ci-dessous. Si c'est l'inhalateur : secoue-le, souffle à fond, puis inspire lentement en appuyant une seule fois et retiens ta respiration 10 secondes. Attends 1 minute avant la 2e bouffée.",
+    "Reste assis·e sous oxygène pendant 10 minutes, sans parler ni bouger. Quelqu'un de l'équipage doit être à côté de toi : s'il n'est pas encore arrivé, appelle-le.",
+    "Mesure ta SpO2 et réimporte tes constantes dans l'application. Au-dessus de 94 %, retire le masque et reste au repos 1 heure. Si elle reste sous 90 % ou si tes lèvres bleuissent, garde l'oxygène et ne reste pas seul·e."
+  ],
+  "etapes_equipage": [
+    "Va tout de suite auprès de {nom}. Installe {nom} assis·e, le buste redressé et légèrement penché en avant, les bras appuyés sur les cuisses, et desserre la combinaison au col et à la poitrine.",
+    "Reste calme et parle à voix basse. Demande à {nom} d'expirer lentement, lèvres pincées, deux fois plus longtemps que l'inspiration, pendant 1 à 2 minutes.",
+    "Prends le masque à oxygène du kit médical, ouvre la bouteille à 4 L/min et pose le masque sur le nez et la bouche de {nom}, en continu.",
+    "Fais prendre à {nom} le traitement indiqué ci-dessous. Pour l'inhalateur : secouer, faire expirer à fond, faire inspirer lentement en appuyant une seule fois, retenir 10 secondes, attendre 1 minute avant la 2e bouffée.",
+    "Reste à côté de {nom} pendant 10 minutes sous oxygène, sans faire parler ni bouger {nom}. Note l'heure de début et surveille les lèvres, la respiration et la lucidité de {nom}.",
+    "Fais mesurer la SpO2 de {nom}. Au-dessus de 94 %, retire le masque et laisse {nom} au repos 1 heure. Sous 90 % ou lèvres bleutées, garde l'oxygène et ne quitte pas {nom}."
   ],
   "prescription": {
     "medicament": "Ventoline (salbutamol)",
@@ -21,12 +31,5 @@
       "dosage": "débit continu 4 L/min",
       "duree": "jusqu'à stabilisation de la SpO2"
     }
-  },
-  "etapes_equipage": [
-    "Fais arrêter toute activité à {nom} : installe {nom} assis·e ou allongé·e, dos droit si possible.",
-    "Va chercher le masque à oxygène du kit médical de bord et place-le sur le nez et la bouche de {nom}.",
-    "Guide la respiration de {nom} à voix haute : inspirer par le nez sur 4 temps, bloquer 2 temps, expirer sur 6 temps.",
-    "Reste auprès de {nom} et préviens un autre membre de l'équipage si tu as besoin de renfort.",
-    "Fais prendre à {nom} le traitement indiqué ci-dessous, puis laisse un temps de repos et surveille la SpO2 de {nom}."
-  ]
+  }
 }

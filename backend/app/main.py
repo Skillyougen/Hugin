@@ -143,7 +143,10 @@ def recevoir_mesure(
     ))
 
     if couleur == "rouge":
-        protocole = selectionner_protocole(details)
+        protocole = selectionner_protocole(details, {
+            "frequence_cardiaque": mesure.frequence_cardiaque, "spo2": mesure.spo2,
+            "temperature": mesure.temperature, "sommeil": mesure.sommeil_heures,
+        })
         # Un colon n'a qu'une alerte active à la fois : un nouvel import
         # critique remplace la précédente (sinon elle resterait orpheline,
         # car seul le protocole le plus récent est avancé par le colon).
@@ -480,6 +483,7 @@ def _construire_protocole_actif(
         titre=proto["titre"],
         etapes=etapes,
         colon_nom=nom,
+        etape_traitement=proto.get("etape_traitement"),
         vue="equipage" if equipage else "colon",
         etape_courante=suivi.etape_courante,
         termine=suivi.termine,

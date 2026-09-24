@@ -1,16 +1,27 @@
 {
   "id": "hyperthermie",
-  "titre": "Température corporelle critique",
+  "titre": "Température corporelle très élevée",
   "declencheur": {
     "constante": "temperature",
-    "niveau_minimal": 2
+    "niveau_minimal": 2,
+    "sens": "haut"
   },
+  "etape_traitement": 3,
   "etapes": [
-    "Rends-toi dans un espace frais du vaisseau et retire les couches de vêtement superflues.",
-    "Applique un linge humide sur le front, la nuque et les poignets.",
-    "Bois de l'eau à petites gorgées régulières.",
-    "Préviens un membre de l'équipage de ton état.",
-    "Prends le traitement indiqué ci-dessous et surveille ta température toutes les 30 minutes."
+    "Arrête tout effort et rends-toi dans la zone la plus fraîche du vaisseau. Retire les couches de vêtements en trop.",
+    "Mesure ta température et note l'heure. Bois 20 à 30 cl d'eau fraîche (pas glacée) à petites gorgées.",
+    "Refroidis-toi : pose un linge humide et frais sur le front, la nuque, les aisselles et l'aine, et évente-toi. Change le linge dès qu'il tiédit.",
+    "Prends le traitement indiqué ci-dessous avec de l'eau, en respectant l'intervalle indiqué entre deux prises.",
+    "Reste au frais, continue à boire régulièrement et remesure ta température toutes les 15 minutes.",
+    "Réimporte tes constantes. Sous 38 °C, repos et hydratation pendant 2 heures. Au-dessus de 39,5 °C, ou en cas de confusion, de vertiges ou de vomissements, allonge-toi au frais, continue à te refroidir et ne reste pas seul·e."
+  ],
+  "etapes_equipage": [
+    "Accompagne {nom} vers la zone la plus fraîche du vaisseau et aide à retirer les couches de vêtements en trop.",
+    "Note la température de {nom} et l'heure. Fais boire 20 à 30 cl d'eau fraîche, pas glacée, à petites gorgées.",
+    "Refroidis {nom} : linge humide et frais sur le front, la nuque, les aisselles et l'aine, éventail ; change le linge dès qu'il tiédit.",
+    "Fais prendre à {nom} le traitement indiqué ci-dessous avec de l'eau, en respectant l'intervalle indiqué entre deux prises.",
+    "Reste auprès de {nom}, fais boire régulièrement et remesure la température toutes les 15 minutes.",
+    "Sous 38 °C : repos et hydratation pendant 2 heures. Au-dessus de 39,5 °C, ou si {nom} est confus·e, a des vertiges ou vomit : allonge {nom} au frais, continue le refroidissement et ne quitte pas {nom}."
   ],
   "prescription": {
     "medicament": "Dantrolène",
@@ -21,12 +32,5 @@
       "dosage": "1 g",
       "duree": "toutes les 6h, maximum 4g/jour"
     }
-  },
-  "etapes_equipage": [
-    "Accompagne {nom} vers un espace frais du vaisseau et aide à retirer les couches de vêtement superflues.",
-    "Applique un linge humide sur le front, la nuque et les poignets de {nom}.",
-    "Fais boire de l'eau à {nom} à petites gorgées régulières.",
-    "Reste auprès de {nom} et préviens un autre membre de l'équipage.",
-    "Fais prendre à {nom} le traitement indiqué ci-dessous et vérifie la température de {nom} toutes les 30 minutes."
-  ]
+  }
 }
