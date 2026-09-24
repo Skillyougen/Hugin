@@ -27,7 +27,7 @@ export default function ConversationHistory() {
     return (
       <Card className="flex flex-col items-center gap-2 py-8 text-center">
         <p className="m-0 text-sm text-text-secondary">Aucune conversation pour l'instant.</p>
-        <Link to="/assistant" className="text-sm font-medium">Parler à Huginn</Link>
+        <Link to="/" className="text-sm font-medium">Parler à Huginn</Link>
       </Card>
     )
   }
@@ -52,7 +52,7 @@ export default function ConversationHistory() {
           ))}
         </section>
       ))}
-      <Link to="/assistant" className="self-center text-sm font-medium">Reprendre la discussion</Link>
+      <Link to="/" className="self-center text-sm font-medium">Reprendre la discussion</Link>
     </div>
   )
 }

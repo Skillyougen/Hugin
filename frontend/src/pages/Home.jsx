@@ -1,90 +1,146 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import HomeBackground from '../components/home/HomeBackground'
-import WelcomeHero from '../components/home/WelcomeHero'
-import WellbeingCard from '../components/status/WellbeingCard'
+import MessageBubble from '../components/chat/MessageBubble'
+import TypingIndicator from '../components/chat/TypingIndicator'
+import ChatInput from '../components/chat/ChatInput'
+import ChatHero from '../components/chat/WelcomeHero'
 import ActiveProtocolCard from '../components/status/ActiveProtocolCard'
-import RecommendationsGrid from '../components/status/RecommendationsGrid'
-import VitalMiniCard from '../components/vitals/VitalMiniCard'
+import Foxy from '../components/mascot/Foxy'
+import { useFoxyMood, moodFromMessage } from '../components/mascot/useFoxyMood'
 import { useAuth } from '../context/AuthContext'
 import { useNightShift } from '../utils/nightShift'
-import { formatTime } from '../utils/format'
 import * as api from '../api/client'
-import { wellbeingFromCouleur, vitalsFromMesure, adaptRecommandation } from '../api/adapters'
+import { wellbeingFromCouleur, messageFromApi } from '../api/adapters'
 
-const POLL_MS = 10000
+const MOOD_LABEL = {
+  listening: 'Foxy t’écoute',
+  thinking: 'Foxy réfléchit…',
+  worried: 'Foxy est attentif',
+  alert: 'Foxy veille sur toi',
+  sad: 'Foxy est là pour toi',
+  sleepy: 'Foxy veille en silence',
+  happy: 'Foxy est content',
+  proud: 'Foxy est fier de toi',
+  cheer: 'Foxy t’encourage',
+  surprised: 'Foxy est surpris',
+  neutral: 'Foxy est là',
+}
 
 /**
- * Accueil (cahier des charges §4, page 1) : état global, résumé des
- * dernières constantes, recommandations, protocole guidé en cas de risque.
- * Tout vient de GET /etat ; le bandeau des alertes équipage est dans
- * <CrewAlerts /> (App.jsx).
+ * Accueil = chat avec Huginn, relié à l'IA locale via
+ * POST /chat (contexte : dernières constantes, alerte en cours, échanges
+ * précédents de CE colon). L'état global (pastille) et le protocole guidé
+ * actif sont intégrés à cet écran ; l'historique est conservé côté serveur et
+ * se relit dans la page Historique. La conversation ne change jamais l'état ni
+ * le protocole : garde-fou du cahier des charges (pas de diagnostic, pas de
+ * médicament inventé par l'IA).
  */
 export default function HomePage() {
-  const { token, colon } = useAuth()
+  const { token } = useAuth()
   const night = useNightShift()
+  const [messages, setMessages] = useState([])
   const [etat, setEtat] = useState(null)
-  const [error, setError] = useState(null)
-
-  const load = useCallback(() => api.getEtat(token).then((e) => { setEtat(e); setError(null) }), [token])
+  const [isTyping, setIsTyping] = useState(false)
+  const [userTyping, setUserTyping] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const listRef = useRef(null)
 
   useEffect(() => {
-    load().catch((err) => setError(err.message))
-    const id = setInterval(() => load().catch(() => {}), POLL_MS)
+    Promise.all([api.getChat(token, 100), api.getEtat(token)])
+      .then(([chat, etatRes]) => {
+        setMessages(chat.map(messageFromApi))
+        setEtat(etatRes)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+    // Rafraîchi régulièrement : progression du protocole, nouvel import de constantes.
+    const id = setInterval(() => api.getEtat(token).then(setEtat).catch(() => {}), 10000)
     return () => clearInterval(id)
-  }, [load])
+  }, [token])
 
   async function handleEtapeSuivante() {
     const protocole = await api.avancerProtocole(token)
     setEtat((prev) => ({ ...prev, protocole_actif: protocole }))
   }
 
-  if (error && !etat) return <div className="p-4 text-sm font-medium text-status-critical">Erreur : {error}</div>
-  if (!etat) return <div className="p-4 text-sm text-text-muted">Chargement…</div>
+  const wellbeing = useMemo(() => (etat ? wellbeingFromCouleur(etat.couleur) : null), [etat])
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.text
+  const mood = useFoxyMood({
+    score: wellbeing?.score ?? 100,
+    status: wellbeing?.level ?? 'good',
+    phase: isTyping ? 'assistantThinking' : userTyping ? 'userTyping' : 'idle',
+    lastUserMessage: lastUser,
+    hour: new Date().getHours(),
+  })
 
-  const wellbeing = wellbeingFromCouleur(etat.couleur)
-  const vitals = vitalsFromMesure(etat.derniere_mesure)
+  useEffect(() => {
+    const el = listRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+  }, [messages, isTyping])
+
+  const handleSend = useCallback(
+    async (text) => {
+      const temp = { id: `tmp-${Date.now()}`, role: 'user', text, date: new Date().toISOString() }
+      setMessages((prev) => [...prev, temp])
+      setIsTyping(true)
+      try {
+        const res = await api.postChat(token, text)
+        const reply = messageFromApi(res.assistant)
+        reply.mood = wellbeing?.level === 'critical' ? 'alert' : (moodFromMessage(text) ?? 'neutral')
+        setMessages((prev) => [...prev.filter((m) => m.id !== temp.id), messageFromApi(res.utilisateur), reply])
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `err-${Date.now()}`, role: 'assistant', text: `Je n'ai pas pu répondre (${err.message}). Réessaie dans un instant.`, date: new Date().toISOString(), mood: 'sad' },
+        ])
+      } finally {
+        setIsTyping(false)
+      }
+    },
+    [token, wellbeing],
+  )
+
+  const started = messages.length > 0
 
   return (
-    <div className="relative h-full overflow-y-auto">
+    <div className="relative flex h-full flex-col">
       <HomeBackground />
-      <div className="relative mx-auto flex max-w-2xl flex-col gap-5 p-4">
-        {!wellbeing ? (
-          <WelcomeHero night={night} />
-        ) : (
-          <>
-            <WellbeingCard wellbeing={wellbeing} name={colon.nom} />
 
-            {etat.protocole_actif && (
-              <ActiveProtocolCard protocole={etat.protocole_actif} onEtapeSuivante={handleEtapeSuivante} />
-            )}
-
-            {vitals && (
-              <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="m-0 text-sm font-semibold text-text-primary">Dernières constantes</h2>
-                  <span className="text-xs text-text-muted">Importées à {formatTime(etat.derniere_mesure.timestamp)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {Object.keys(vitals).map((key) => (
-                    <VitalMiniCard key={key} vitalKey={key} value={vitals[key]} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {etat.recommandations.length > 0 && (
-              <section className="flex flex-col gap-3">
-                <h2 className="m-0 text-sm font-semibold text-text-primary">Recommandations</h2>
-                <RecommendationsGrid recommendations={etat.recommandations.map(adaptRecommandation)} />
-              </section>
-            )}
-
-            <Link to="/donnees" className="self-center text-sm font-medium text-ocean-600">
-              Importer de nouvelles constantes
-            </Link>
-          </>
+      <div className="relative mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col">
+        {etat?.protocole_actif && (
+          <div className="flex max-h-[65%] shrink-0 flex-col gap-3 overflow-y-auto px-4 pt-3">
+            <ActiveProtocolCard protocole={etat.protocole_actif} onEtapeSuivante={handleEtapeSuivante} />
+          </div>
         )}
+
+        {started && (
+          <div className="flex items-center gap-2.5 border-b border-surface-border bg-surface-card/70 px-4 py-1.5 backdrop-blur" aria-live="polite">
+            <Foxy mood={mood} size={54} decorative />
+            <span className="text-[13px] font-semibold text-text-primary">{MOOD_LABEL[mood]}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <p className="p-6 text-center text-sm text-text-muted">Chargement…</p>
+        ) : started ? (
+          <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5">
+            {messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))}
+            {isTyping && <TypingIndicator />}
+          </div>
+        ) : (
+          <ChatHero wellbeing={wellbeing} onPick={handleSend} night={night} />
+        )}
+      </div>
+
+      <div className="relative border-t border-surface-border bg-surface-card px-4 pb-4 pt-3">
+        <div className="mx-auto max-w-2xl">
+          <ChatInput onSend={handleSend} onTypingChange={setUserTyping} disabled={isTyping || loading} night={night} />
+          <p className="m-0 mt-2 text-center text-[11px] text-text-muted">
+            Huginn est un assistant de bien-être : il ne pose pas de diagnostic et ne prescrit aucun médicament.
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -21,15 +21,15 @@ autre (cahier des charges §5).
 
 ## Périmètre du front
 
-L'application compte 4 pages, toutes branchées sur cette API (aucune donnée
+L'application compte 3 pages, toutes branchées sur cette API (aucune donnée
 simulée côté front) :
 
-- **Accueil** : `GET /etat` (état global, dernières constantes,
-  recommandations, protocole guidé actif) et `POST /protocole/etape-suivante` ;
-  le bandeau des alertes équipage utilise `GET /alertes` et
-  `GET /alertes/{id}/protocole`.
-- **Assistant** : conversation libre avec l'IA locale, `GET /chat` et `POST /chat`.
-- **Données** : `POST /mesures`, `GET /mesures`, `GET /etat`.
+- **Accueil** : le chat avec Huginn (`GET /chat`, `POST /chat`), avec la pastille
+  d'état global (`GET /etat`) et, en cas de crise, le protocole guidé actif
+  (`POST /protocole/etape-suivante`). Le bandeau des alertes équipage, visible
+  sur toutes les pages, utilise `GET /alertes` et `GET /alertes/{id}/protocole`.
+- **Données** : `POST /mesures`, `GET /mesures`, `GET /etat` (état global,
+  dernières constantes, graphiques, cartes de recommandations du dernier import).
 - **Historique** : onglet *Conversations* (`GET /chat?limite=500`) et onglet
   *Recommandations* (`GET /recommandations`).
 

@@ -1,8 +1,9 @@
 # Huginn — Frontend web (React + JavaScript)
 
-Assistant santé de bord du vaisseau *Yggdrasil*. 4 pages : accueil (état global,
-recommandations, protocole guidé, alertes équipage), assistant (chat avec l'IA
-locale), données corporelles, historique (conversations et recommandations). Tout vient de l'API backend, sans donnée simulée.
+Assistant santé de bord du vaisseau *Yggdrasil*. 3 pages : accueil = chat avec l'IA
+locale (état global et protocole guidé intégrés, alertes équipage en bandeau),
+données corporelles (constantes, graphiques, recommandations), historique
+(conversations et recommandations). Tout vient de l'API backend, sans donnée simulée.
 Mascotte : **Foxy**, renard polaire animé.
 
 Stack : Vite 7, React 19, React Router 7, Tailwind CSS 4, lucide-react.
@@ -28,14 +29,14 @@ bord. Valable pour les textes et les humeurs de Foxy.
 src/
   App.jsx                    routes, quart de nuit, intro
   index.css                  tokens Tailwind (ocean / mint / surfaces), variables jour/nuit
-  pages/                     Home.jsx · Assistant.jsx · VitalData.jsx · History.jsx · Login.jsx
+  pages/                     Home.jsx (chat) · VitalData.jsx · History.jsx · Login.jsx
   api/                       client.js (appels HTTP) · adapters.js (API vers composants)
   context/                   AuthContext (session du colon)
   data/                      catégories de recommandations
   components/
     mascot/                  Foxy.jsx · foxy.css · useFoxyMood.js · FoxyAvatar.jsx · IntroSplash.jsx
-    home/                    WelcomeHero · HomeBackground
-    chat/                    MessageBubble · ChatInput · TypingIndicator · WelcomeHero (chat)
+    home/                    HomeBackground
+    chat/                    MessageBubble · ChatInput · TypingIndicator · WelcomeHero (accueil)
     status/                  état global, protocole guidé, CrewAlerts (alertes équipage)
     vitals/ history/ ui/ nav/
   utils/                     seuils d'affichage, formats, quart de nuit
